@@ -1,24 +1,35 @@
 name: Preview
 
-# Requires Vercel project linked + secrets:
-#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-# Disabled by default until secrets are set — enable by uncommenting the pull_request trigger.
+# HARD CONSTRAINT: Do not use Vercel.
+# This workflow builds a production image for non-Vercel hosts
+# (Fly.io, Railway, Render, self-hosted Docker, etc.).
+#
+# Optional secrets for auto-deploy (pick one path):
+#   FLY_API_TOKEN          — Fly.io
+#   RAILWAY_TOKEN          — Railway
+#   DOCKER_REGISTRY_TOKEN  — push image to your registry
+#
+# Default: build-only on workflow_dispatch so CI never deploys without intent.
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   paths:
-  #     - "apps/web/**"
-  #     - "packages/**"
-  #     - "package.json"
-  #     - "pnpm-lock.yaml"
+    inputs:
+      target:
+        description: "Deploy target (build-only | fly | railway | none)"
+        required: true
+        default: "build-only"
+        type: choice
+        options:
+          - build-only
+          - fly
+          - railway
+          - none
 
 jobs:
-  preview:
-    name: Vercel preview
+  build-image:
+    name: Docker build (web)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -35,39 +46,41 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+      - name: Install
+        run: pnpm install --frozen-lockfile
 
-      - name: Pull Vercel env
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Build web
+        run: pnpm --filter @songforge/web build
 
-      - name: Build
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Deploy preview
-        id: deploy
-        run: |
-          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Comment preview URL
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Build image (no push)
+        if: github.event.inputs.target == 'build-only' || github.event.inputs.target == 'none'
+        uses: docker/build-push-action@v6
         with:
-          script: |
-            const url = '${{ steps.deploy.outputs.url }}';
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `### Preview\n${url}`
-            });
+          context: .
+          file: ./apps/web/Dockerfile
+          push: false
+          tags: songforge-web:local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Fly.io (optional) ---
+      - name: Deploy to Fly
+        if: github.event.inputs.target == 'fly'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: fly deploy
+        if: github.event.inputs.target == 'fly'
+        run: flyctl deploy --remote-only -c apps/web/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # --- Railway (optional) ---
+      - name: Deploy to Railway
+        if: github.event.inputs.target == 'railway'
+        run: |
+          npm i -g @railway/cli
+          railway up --service web
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

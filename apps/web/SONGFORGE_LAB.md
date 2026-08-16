@@ -2,39 +2,57 @@
 
 Creative surface for BLAIZE SUNDAY.
 
-## On this branch
+## Hard constraints
 
-### GitHub Actions
-- `.github/workflows/ci.yml` — typecheck, test, web build on PR/push
-- `.github/workflows/db-validate.yml` — Prisma validate on schema changes
-- `.github/workflows/preview.yml` — Vercel preview scaffold (enable after secrets)
-- `.github/workflows/hygiene.yml` — weekly format + audit
+- **Do not use Vercel.** Deploy with Docker, Fly.io, Railway, Render, or self-hosted.
+- Never mark a release `LIVE` without verified external evidence.
+- Agents prepare; humans authorize irreversible actions.
 
-### Lab UI (session build)
+## GitHub Actions
+
+| Workflow | Role |
+|----------|------|
+| `ci.yml` | Typecheck · test · web build on PR/push |
+| `db-validate.yml` | Prisma validate on schema changes |
+| `preview.yml` | Docker build + optional Fly/Railway deploy (`workflow_dispatch` only) |
+| `hygiene.yml` | Weekly format + audit |
+
+## Lab UI (session build)
+
 - AppShell, ProjectCard, layout, globals, tailwind
-- Lab home (`app/page.tsx`) — new track + project strip
+- Lab home — new track + project strip
 - Pipeline — agent run log
 - Releases — state machine rail
 - Approvals page
-- Types + forge variation engine + `/api/forge` route
+- Types + forge engine + `/api/forge`
 
-### Still local / in zip (drop in to complete)
-- `components/SongLab.tsx` — writing surface
-- `lib/persistence.ts` — localStorage layer
-- `app/settings/page.tsx` — LLM key + reset
-- `components/ApprovalCard.tsx` — gate cards
+### Still local / in zip
 
-Complete source: session `songforge-lab.zip`
+- `components/SongLab.tsx`
+- `lib/persistence.ts`
+- `app/settings/page.tsx`
+- `components/ApprovalCard.tsx`
 
-## Run
+## Local run
 
 ```bash
 pnpm install
 pnpm --filter @songforge/web dev
 ```
 
-Open http://localhost:3000
+## Deploy (non-Vercel)
 
-## PR
+```bash
+# Docker (self-host / any registry)
+docker build -f apps/web/Dockerfile -t songforge-web .
+docker run -p 3000:3000 songforge-web
 
-https://github.com/Full-Stack-Assets/BLAIZE-SUNDAY/pull/2
+# Fly.io
+fly launch --config apps/web/fly.toml   # once
+fly deploy -c apps/web/fly.toml
+
+# Railway
+railway up --service web
+```
+
+PR: https://github.com/Full-Stack-Assets/BLAIZE-SUNDAY/pull/2
