@@ -1,0 +1,32 @@
+BLAIZE SUNDAY Full Master Compilation Implementation Plan
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Goal: Compile one portable, provenance-preserving BLAIZE SUNDAY master that incorporates the approved Hybrid Operational Blueprint into Part V and includes the complete execution and prompting annexes.
+Architecture: Use BLAIZE_SUNDAY_UNIFIED_MASTER_SYSTEM_V3.md as the structural base because it already contains the role-library-integrated Parts V–VI. Preserve all source artifacts unchanged. Create a new Version 4 compiled master plus a portable bundle containing source documents, visual references, the role-skill archive, an executive deck, a manifest, and SHA-256 checksums.
+Tech Stack: Markdown, JSON manifest, SHA-256, ZIP bundle.
+Global Constraints
+	●	Do not overwrite any uploaded source artifact.
+	●	Preserve source terminology and governance boundaries.
+	●	Treat document compilation approval separately from production gates G0–G12.
+	●	Preserve the user-approved Approach C Hybrid Operational Blueprint in Part V.
+	●	Include complete, untruncated copies of the Luxury Glitch Prompting Playbook and 12-Week Proof-Cycle Execution Plan as annexes.
+	●	Register user-supplied BLAIZE visual references as references, not automatically as release-ready canon.
+	●	Include source lineage and checksums.
+￼
+Task 1: Create Version 4 compiled master
+	￼	Copy V3 as the base without modifying the original.
+	￼	Update document metadata and change-control language for the compiled master.
+	￼	Preserve Part V as the controlling Hybrid Operational Blueprint and confirm the seven divisions, autonomy tiers, work contracts, 12-week activation map, and closed-loop operating model are present.
+Task 2: Append complete execution annexes
+	￼	Append the full Luxury Glitch Prompting Playbook as Part VII.
+	￼	Append the full 12-Week Proof-Cycle Execution Plan as Part VIII.
+	￼	Add a visual-reference appendix and source/bundle manifest section.
+Task 3: Package portable source bundle
+	￼	Copy the compiled master, source markdowns, visual references, executive deck, and role-skill archive into a clean bundle directory.
+	￼	Generate manifest.json and SHA256SUMS.txt.
+	￼	Zip the bundle.
+Task 4: Verify
+	￼	Confirm required Parts I–VIII exist.
+	￼	Confirm both annexes are complete and contain their terminal markers.
+	￼	Confirm all six supplied JPEG visual references are included.
+	￼	Confirm bundle checksums validate.
+	￼	Report exact artifact paths and compilation status.
