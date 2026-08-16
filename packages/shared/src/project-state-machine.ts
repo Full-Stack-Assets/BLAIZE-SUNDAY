@@ -1,0 +1,42 @@
+export type ProjectState =
+  | "IDEA"
+  | "WRITING"
+  | "PRODUCTION"
+  | "VOCALS"
+  | "MIXING"
+  | "MASTERING"
+  | "QA"
+  | "ASSET_GENERATION"
+  | "METADATA"
+  | "DISTRIBUTION_READY"
+  | "APPROVAL"
+  | "SCHEDULED"
+  | "RELEASED"
+  | "MONETIZING"
+  | "ANALYZED"
+  | "FAILED"
+  | "ARCHIVED";
+
+export const PROJECT_TRANSITIONS: Record<ProjectState, ProjectState[]> = {
+  IDEA: ["WRITING", "FAILED"],
+  WRITING: ["PRODUCTION", "FAILED"],
+  PRODUCTION: ["VOCALS", "FAILED"],
+  VOCALS: ["MIXING", "FAILED"],
+  MIXING: ["MASTERING", "FAILED"],
+  MASTERING: ["QA", "FAILED"],
+  QA: ["ASSET_GENERATION", "WRITING", "PRODUCTION", "MIXING", "FAILED"],
+  ASSET_GENERATION: ["METADATA", "FAILED"],
+  METADATA: ["DISTRIBUTION_READY", "FAILED"],
+  DISTRIBUTION_READY: ["APPROVAL", "FAILED"],
+  APPROVAL: ["SCHEDULED", "DISTRIBUTION_READY", "FAILED"],
+  SCHEDULED: ["RELEASED", "FAILED"],
+  RELEASED: ["MONETIZING"],
+  MONETIZING: ["ANALYZED"],
+  ANALYZED: ["MONETIZING", "ARCHIVED"],
+  FAILED: ["IDEA", "WRITING", "PRODUCTION", "ARCHIVED"],
+  ARCHIVED: []
+};
+
+export function canProjectTransition(from: ProjectState, to: ProjectState): boolean {
+  return PROJECT_TRANSITIONS[from]?.includes(to) ?? false;
+}

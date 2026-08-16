@@ -1,0 +1,33 @@
+{
+  "name": "songforge-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous artist operating system for BLAIZE SUNDAY.",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "dev": "pnpm --filter @songforge/web dev",
+    "worker": "pnpm --filter @songforge/worker dev",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @songforge/database db:generate",
+    "db:validate": "pnpm --filter @songforge/database db:validate",
+    "db:push": "pnpm --filter @songforge/database db:push",
+    "db:seed": "pnpm --filter @songforge/database db:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
