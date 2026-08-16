@@ -1,18 +1,32 @@
 # Songforge Lab branch
 
-Creative surface for BLAIZE SUNDAY built in the Songforge session.
+Creative surface for BLAIZE SUNDAY.
 
-## What's on this branch
+## On this branch
 
-- **Song Lab** — section editor, auto-save, version history, side-by-side compare
-- **Forge variation** — local engine + `/api/forge` (OpenAI-compatible / Groq / OpenRouter)
-- **Approvals** — physical gate cards that advance project + release state
-- **Pipeline** — agent run log
-- **Releases** — state machine rail (PREPARED → … → LIVE)
-- **Settings** — local LLM key + nuclear local-state reset
-- **Persistence** — localStorage first (`songforge.v1`), swap-ready for `@songforge/database`
+### GitHub Actions
+- `.github/workflows/ci.yml` — typecheck, test, web build on PR/push
+- `.github/workflows/db-validate.yml` — Prisma validate on schema changes
+- `.github/workflows/preview.yml` — Vercel preview scaffold (enable after secrets)
+- `.github/workflows/hygiene.yml` — weekly format + audit
 
-## Run locally
+### Lab UI (session build)
+- AppShell, ProjectCard, layout, globals, tailwind
+- Lab home (`app/page.tsx`) — new track + project strip
+- Pipeline — agent run log
+- Releases — state machine rail
+- Approvals page
+- Types + forge variation engine + `/api/forge` route
+
+### Still local / in zip (drop in to complete)
+- `components/SongLab.tsx` — writing surface
+- `lib/persistence.ts` — localStorage layer
+- `app/settings/page.tsx` — LLM key + reset
+- `components/ApprovalCard.tsx` — gate cards
+
+Complete source: session `songforge-lab.zip`
+
+## Run
 
 ```bash
 pnpm install
@@ -21,7 +35,6 @@ pnpm --filter @songforge/web dev
 
 Open http://localhost:3000
 
-## Note
+## PR
 
-This branch layers the Lab UI on top of the existing BLAIZE-SUNDAY monorepo.
-Merge carefully with main's release/backend packages.
+https://github.com/Full-Stack-Assets/BLAIZE-SUNDAY/pull/2
