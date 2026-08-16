@@ -1,0 +1,500 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Artist {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  status       String
+  canonVersion String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  canon        ArtistCanon?
+  voiceProfile VoiceProfile?
+  projects     SongProject[]
+  releases     Release[]
+  agentRuns    AgentRun[]
+}
+
+model ArtistCanon {
+  id        String   @id @default(uuid())
+  artistId  String   @unique
+  version   String
+  canon     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+}
+
+model VoiceProfile {
+  id                      String   @id @default(uuid())
+  artistId                String   @unique
+  canonicalVoiceId        String?
+  provider                String?
+  verificationStatus      String   @default("UNCONFIGURED")
+  vocalSettings           Json
+  approvedReferenceAssets Json
+  consistencyThreshold    Float    @default(0.85)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+}
+
+model SongProject {
+  id                String       @id @default(uuid())
+  artistId          String
+  title             String?
+  workingTitle      String?
+  slug              String?      @unique
+  state             ProjectState @default(IDEA)
+  strategicMove     String?
+  creativeRationale String?
+  concept           Json?
+  theme             Json?
+  genre             Json?
+  mood              Json?
+  tempo             Json?
+  songStructure     Json?
+  hook              Json?
+  canonVersion      String
+  autonomySource    String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  artist             Artist               @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  lyrics             LyricVersion[]
+  audioAssets        AudioAsset[]
+  visualAssets       VisualAsset[]
+  videos             VideoAsset[]
+  release            Release?
+  metadata           ReleaseMetadata?
+  rights             RightsRecord?
+  agentRuns          AgentRun[]
+  decisions          AgentDecision[]
+  approvals          Approval[]
+  revisionRequests   RevisionRequest[]
+  generationHistory GenerationHistory[]
+  analyticsSnapshots AnalyticsSnapshot[]
+  revenueEvents      RevenueEvent[]
+
+  @@index([artistId, createdAt])
+}
+
+enum ProjectState {
+  IDEA
+  WRITING
+  PRODUCTION
+  VOCALS
+  MIXING
+  MASTERING
+  QA
+  ASSET_GENERATION
+  METADATA
+  DISTRIBUTION_READY
+  APPROVAL
+  SCHEDULED
+  RELEASED
+  MONETIZING
+  ANALYZED
+  FAILED
+  ARCHIVED
+}
+
+model LyricVersion {
+  id             String      @id @default(uuid())
+  projectId      String
+  version        Int
+  title          String?
+  fullLyrics     String
+  structure      Json
+  hook           String?
+  captionLines   Json
+  canonScore     Float?
+  accepted       Boolean     @default(false)
+  createdByAgent String?
+  createdAt      DateTime    @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+}
+
+model AudioAsset {
+  id                 String         @id @default(uuid())
+  projectId          String
+  type               AudioAssetType
+  fileUrl            String
+  storageKey         String
+  sha256             String
+  contentType        String
+  durationSeconds    Float?
+  sampleRate         Int?
+  bitDepth           Int?
+  loudnessLufs       Float?
+  voiceIdUsed        String?
+  voiceConsistency   Float?
+  verificationStatus String         @default("UNVERIFIED")
+  generationSettings Json?
+  approved           Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, type, approved])
+}
+
+enum AudioAssetType {
+  DEMO
+  VOCAL
+  INSTRUMENTAL
+  MIX
+  MASTER
+  STEM
+  ACAPELLA
+  PREVIEW
+  SPOKEN_DROP
+}
+
+model VisualAsset {
+  id                 String          @id @default(uuid())
+  projectId          String
+  type               VisualAssetType
+  fileUrl            String
+  storageKey         String
+  sha256             String
+  contentType        String
+  width              Int?
+  height             Int?
+  prompt             String?
+  canonScore         Float?
+  verificationStatus String          @default("UNVERIFIED")
+  approved           Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, type, approved])
+}
+
+enum VisualAssetType {
+  COVER_ART
+  COVER_VARIANT
+  THUMBNAIL
+  PROMOTIONAL_STILL
+  BANNER
+  SOCIAL_POST
+  BEHIND_THE_SONG
+}
+
+model VideoAsset {
+  id              String         @id @default(uuid())
+  projectId       String
+  type            VideoAssetType
+  fileUrl         String
+  storageKey      String
+  sha256          String
+  contentType     String
+  durationSeconds Float?
+  platformTarget  String?
+  approved        Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum VideoAssetType {
+  VISUALIZER
+  LYRIC_VIDEO
+  MUSIC_VIDEO_CONCEPT
+  SHORT
+  REEL
+  TIKTOK
+  TEASER
+  ANNOUNCEMENT
+}
+
+model Release {
+  id                     String             @id @default(uuid())
+  projectId              String             @unique
+  artistId               String
+  title                  String
+  status                 DistributionStatus @default(PREPARED)
+  releaseType            String             @default("SINGLE")
+  proposedReleaseDate    DateTime?
+  scheduledReleaseDate   DateTime?
+  liveDate               DateTime?
+  distributor            String?
+  verifiedPlatformUrl    String?
+  externalConfirmationId String?
+  platformUrls           Json?
+  submissionPackage      Json?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  project        SongProject             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  artist         Artist                  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  approvals      Approval[]
+  actionPackages ReleaseActionPackage[]
+  events         ReleaseEvent[]
+  receipts       ExternalActionReceipt[]
+  revisions      RevisionRequest[]
+
+  @@index([artistId, createdAt])
+  @@index([status])
+}
+
+enum DistributionStatus {
+  PREPARED
+  AWAITING_AUTHORIZATION
+  SUBMITTED
+  ACCEPTED
+  SCHEDULED
+  LIVE
+  FAILED
+}
+
+model ReleaseMetadata {
+  id           String      @id @default(uuid())
+  projectId    String      @unique
+  title        String
+  artistName   String
+  version      String?
+  genre        String
+  subgenre     String?
+  language     String
+  explicit     Boolean
+  isrc         String?
+  upc          String?
+  credits      Json
+  description  String?
+  tags         Json
+  youtubeTitle String?
+  youtubeDesc  String?
+  dspMetadata  Json
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model RightsRecord {
+  id                  String      @id @default(uuid())
+  projectId           String      @unique
+  ownership           Json
+  ownershipConfirmed  Boolean     @default(false)
+  contributors        Json
+  licenses            Json
+  aiGenerationRecords Json
+  provenanceManifest  Json
+  provenanceComplete  Boolean     @default(false)
+  rightsWarnings      Json?
+  approved            Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id             String         @id @default(uuid())
+  projectId      String
+  releaseId      String?
+  actionType     String
+  payload        Json
+  payloadHash    String
+  status         ApprovalStatus @default(PENDING)
+  requestedBy    String
+  requestedAt    DateTime       @default(now())
+  expiresAt      DateTime
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+
+  project   SongProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  release   Release?          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  revisions RevisionRequest[]
+
+  @@index([releaseId, status])
+  @@index([payloadHash])
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+model RevisionRequest {
+  id            String         @id @default(uuid())
+  approvalId    String
+  projectId     String
+  releaseId     String
+  target        String
+  instruction   String
+  requestedBy   String
+  status        RevisionStatus @default(QUEUED)
+  createdAt     DateTime       @default(now())
+  completedAt   DateTime?
+
+  approval Approval   @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  project  SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  release  Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId, status])
+}
+
+enum RevisionStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ReleaseActionPackage {
+  id          String   @id @default(uuid())
+  releaseId   String
+  actionType  String
+  provider    String?
+  payload     Json
+  payloadHash String
+  createdAt   DateTime @default(now())
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId, actionType, createdAt])
+  @@index([payloadHash])
+}
+
+model ReleaseEvent {
+  id         String              @id @default(uuid())
+  releaseId  String
+  type       String
+  fromStatus DistributionStatus?
+  toStatus   DistributionStatus?
+  actor      String
+  evidence   Json
+  createdAt  DateTime            @default(now())
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId, createdAt])
+}
+
+model ExternalActionReceipt {
+  id                     String   @id @default(uuid())
+  releaseId              String
+  actionType              String
+  provider                String
+  payloadHash             String
+  externalConfirmationId String
+  verifiedPlatformUrl     String?
+  rawReceipt              Json
+  verifiedAt              DateTime
+  createdAt               DateTime @default(now())
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, actionType, externalConfirmationId])
+  @@index([releaseId, actionType])
+}
+
+model Agent {
+  id            String   @id
+  name          String
+  category      String
+  description   String
+  active        Boolean  @default(true)
+  autonomyLevel String
+  runbook       Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AgentRun {
+  id          String         @id @default(uuid())
+  agentId     String
+  artistId    String?
+  projectId   String?
+  status      AgentRunStatus
+  input       Json
+  output      Json?
+  error       String?
+  retryCount  Int            @default(0)
+  startedAt   DateTime       @default(now())
+  completedAt DateTime?
+
+  artist  Artist?      @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  project SongProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+enum AgentRunStatus {
+  QUEUED
+  RUNNING
+  PASSED
+  FAILED
+  RETRYING
+  ESCALATED
+  SKIPPED
+}
+
+model AgentDecision {
+  id           String   @id @default(uuid())
+  projectId    String?
+  agentId      String
+  decisionType String
+  rationale    String
+  inputHash    String
+  outputHash   String?
+  canonVersion String?
+  confidence   Float?
+  createdAt    DateTime @default(now())
+
+  project SongProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model GenerationHistory {
+  id            String   @id @default(uuid())
+  projectId     String
+  generator     String
+  prompt        String?
+  parameters    Json
+  outputAssetId String?
+  outputSummary String?
+  createdAt     DateTime @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AnalyticsSnapshot {
+  id         String   @id @default(uuid())
+  projectId  String
+  source     String
+  metrics    Json
+  capturedAt DateTime @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model RevenueEvent {
+  id          String   @id @default(uuid())
+  projectId   String
+  source      String
+  amount      Decimal
+  currency    String
+  eventType   String
+  externalRef String?
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
