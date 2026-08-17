@@ -1,4 +1,11 @@
-import type { DistributionStatus } from "../../../packages/release/src/state-machine.ts";
+export type DistributionStatus =
+  | "PREPARED"
+  | "AWAITING_AUTHORIZATION"
+  | "SUBMITTED"
+  | "ACCEPTED"
+  | "SCHEDULED"
+  | "LIVE"
+  | "FAILED";
 
 export const RELEASE_FLOW = [
   "PREPARED",
@@ -6,14 +13,17 @@ export const RELEASE_FLOW = [
   "SUBMITTED",
   "ACCEPTED",
   "SCHEDULED",
-  "LIVE"
+  "LIVE",
 ] as const;
 
 export type TimelineState = "COMPLETE" | "CURRENT" | "UPCOMING" | "FAILED";
 
 export function buildReleaseTimeline(status: DistributionStatus) {
   if (status === "FAILED") {
-    return RELEASE_FLOW.map(item => ({ status: item, state: "FAILED" as const }));
+    return RELEASE_FLOW.map((item) => ({
+      status: item,
+      state: "FAILED" as const,
+    }));
   }
 
   const currentIndex = RELEASE_FLOW.indexOf(
@@ -25,7 +35,7 @@ export function buildReleaseTimeline(status: DistributionStatus) {
       ? "COMPLETE"
       : index === currentIndex
         ? "CURRENT"
-        : "UPCOMING") as TimelineState
+        : "UPCOMING") as TimelineState,
   }));
 }
 

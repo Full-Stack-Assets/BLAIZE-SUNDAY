@@ -1,7 +1,6 @@
 /**
  * Lab mode: release command service is not wired to Prisma yet.
- * Client-side Approvals / Releases use local persistence.
- * These server routes return structured 503 until DB is connected.
+ * Client Approvals / Releases use local persistence.
  */
 
 export class LabReleaseUnavailableError extends Error {
@@ -14,25 +13,17 @@ export class LabReleaseUnavailableError extends Error {
   }
 }
 
+function unavailable(..._args: unknown[]): never {
+  throw new LabReleaseUnavailableError();
+}
+
 export function createReleaseCommandService() {
   return {
-    async resolveApproval() {
-      throw new LabReleaseUnavailableError();
-    },
-    async prepareDistribution() {
-      throw new LabReleaseUnavailableError();
-    },
-    async recordExternalSubmission() {
-      throw new LabReleaseUnavailableError();
-    },
-    async recordAccepted() {
-      throw new LabReleaseUnavailableError();
-    },
-    async recordScheduled() {
-      throw new LabReleaseUnavailableError();
-    },
-    async recordLive() {
-      throw new LabReleaseUnavailableError();
-    },
+    resolveApproval: unavailable,
+    prepareDistribution: unavailable,
+    recordExternalSubmission: unavailable,
+    recordAccepted: unavailable,
+    recordScheduled: unavailable,
+    recordLive: unavailable,
   };
 }

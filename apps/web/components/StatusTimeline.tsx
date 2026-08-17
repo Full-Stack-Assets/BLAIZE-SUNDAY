@@ -1,5 +1,4 @@
-import type { DistributionStatus } from "@songforge/release";
-
+import type { DistributionStatus } from "../lib/release-view";
 import { buildReleaseTimeline } from "../lib/release-view";
 
 export function StatusTimeline({ status }: { status: DistributionStatus }) {
