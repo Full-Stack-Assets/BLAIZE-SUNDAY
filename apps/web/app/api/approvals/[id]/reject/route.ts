@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-
 import {
   apiError,
   readJsonObject,
   requireApprovalActor,
-  requiredString
+  requiredString,
 } from "../../../../../lib/api";
 import { createReleaseCommandService } from "../../../../../lib/release-service.server";
 
@@ -21,7 +20,7 @@ export async function POST(
       decision: "REJECT",
       payload: body.payload,
       actor,
-      note: requiredString(body, "note")
+      note: requiredString(body, "note"),
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

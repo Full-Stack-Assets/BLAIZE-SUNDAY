@@ -63,6 +63,14 @@ export function requiredString(
 }
 
 export function apiError(error: unknown) {
+  if (error && typeof error === "object" && "code" in error && "status" in error) {
+    const e = error as { code: string; status: number; message?: string };
+    return NextResponse.json(
+      { ok: false, error: e.code || e.message || "UNKNOWN_ERROR" },
+      { status: typeof e.status === "number" ? e.status : 500 }
+    );
+  }
+
   const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
   const status = error instanceof ApiRequestError
     ? error.status
@@ -83,9 +91,10 @@ export function apiError(error: unknown) {
             "VALID_SCHEDULE_DATE_REQUIRED",
             "PROVIDER_MISMATCH",
             "RELEASE_PACKAGE_INCOMPLETE",
-            "RELEASE_NOT_PREPARED"
+            "RELEASE_NOT_PREPARED",
+            "LAB_RELEASE_SERVICE_UNAVAILABLE"
           ].includes(code)
-          ? 400
+          ? code === "LAB_RELEASE_SERVICE_UNAVAILABLE" ? 503 : 400
           : 500;
 
   return NextResponse.json(

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-
 import { apiError, readJsonObject, requireApprovalActor } from "../../../../../lib/api";
 import { createReleaseCommandService } from "../../../../../lib/release-service.server";
 
@@ -15,7 +14,7 @@ export async function POST(
       approvalId: id,
       decision: "APPROVE",
       payload: body.payload,
-      actor
+      actor,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
