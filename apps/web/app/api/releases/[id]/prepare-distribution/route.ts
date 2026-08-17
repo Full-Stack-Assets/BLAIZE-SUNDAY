@@ -5,12 +5,13 @@ import { createReleaseCommandService } from "../../../../../lib/release-service.
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await readJsonObject(request);
     const result = await createReleaseCommandService().prepareDistribution({
-      releaseId: params.id,
+      releaseId: id,
       provider: requiredString(body, "provider"),
       actor:
         typeof body.actor === "string" && body.actor.trim()

@@ -10,13 +10,14 @@ import { createReleaseCommandService } from "../../../../../lib/release-service.
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await readJsonObject(request);
     const actor = requireApprovalActor(request, body);
     const result = await createReleaseCommandService().recordLive({
-      releaseId: params.id,
+      releaseId: id,
       provider: requiredString(body, "provider"),
       verifiedPlatformUrl: requiredString(body, "verifiedPlatformUrl"),
       externalConfirmationId: requiredString(body, "externalConfirmationId"),
