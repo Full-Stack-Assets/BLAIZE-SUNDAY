@@ -1,19 +1,9 @@
 name: Deploy
 
-# Automated deploy path — no local terminal, no Vercel.
-#
-# ONE-TIME setup (browser only):
-#   Repo → Settings → Secrets and variables → Actions → New repository secret
-#
-#   Option A — Fly.io:
-#     FLY_API_TOKEN   (from https://fly.io/user/personal_access_tokens)
-#     FLY_APP_NAME    (optional, defaults to songforge-web)
-#
-#   Option B — Railway:
-#     RAILWAY_TOKEN   (from Railway account → tokens)
-#     RAILWAY_SERVICE (optional, defaults to web)
-#
-# After the secret exists, every push to songforge-lab (and main) deploys.
+# Automated deploy — no local terminal, no Vercel.
+# Secrets (optional):
+#   FLY_API_TOKEN / FLY_APP_NAME
+#   RAILWAY_TOKEN / RAILWAY_SERVICE
 
 on:
   push:
@@ -74,16 +64,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build
         run: pnpm --filter @songforge/web build
@@ -98,9 +86,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
       - uses: superfly/flyctl-actions/setup-flyctl@master
-
       - name: Deploy
         run: |
           APP="${{ secrets.FLY_APP_NAME }}"
@@ -121,10 +107,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-
       - name: Deploy
         run: |
           SERVICE="${{ secrets.RAILWAY_SERVICE }}"
@@ -142,12 +126,4 @@ jobs:
       - name: Instructions
         run: |
           echo "Build succeeded."
-          echo ""
-          echo "No FLY_API_TOKEN or RAILWAY_TOKEN secret found."
-          echo "Add one secret in the browser to enable auto-deploy:"
-          echo "  Repo → Settings → Secrets and variables → Actions"
-          echo ""
-          echo "  Fly:     FLY_API_TOKEN"
-          echo "  Railway: RAILWAY_TOKEN"
-          echo ""
-          echo "After that, every push to songforge-lab deploys automatically."
+          echo "Add FLY_API_TOKEN or RAILWAY_TOKEN under Settings → Secrets to auto-deploy."
