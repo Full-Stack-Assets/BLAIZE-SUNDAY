@@ -1,0 +1,8 @@
+# Alternate: if the Railway service root is set to apps/web
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install && pnpm build"
+
+[deploy]
+startCommand = "pnpm start"
+healthcheckPath = "/"
