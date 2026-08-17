@@ -1,10 +1,5 @@
 name: Deploy
 
-# Automated deploy — no local terminal, no Vercel.
-# Secrets (optional):
-#   FLY_API_TOKEN / FLY_APP_NAME
-#   RAILWAY_TOKEN / RAILWAY_SERVICE
-
 on:
   push:
     branches: [songforge-lab, main]
@@ -59,20 +54,15 @@ jobs:
     name: Build web
     runs-on: ubuntu-latest
     needs: detect
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
-
       - name: Install
         run: pnpm install --no-frozen-lockfile
-
       - name: Build
         run: pnpm --filter @songforge/web build
         env:
