@@ -1,0 +1,153 @@
+name: Deploy
+
+# Automated deploy path — no local terminal, no Vercel.
+#
+# ONE-TIME setup (browser only):
+#   Repo → Settings → Secrets and variables → Actions → New repository secret
+#
+#   Option A — Fly.io:
+#     FLY_API_TOKEN   (from https://fly.io/user/personal_access_tokens)
+#     FLY_APP_NAME    (optional, defaults to songforge-web)
+#
+#   Option B — Railway:
+#     RAILWAY_TOKEN   (from Railway account → tokens)
+#     RAILWAY_SERVICE (optional, defaults to web)
+#
+# After the secret exists, every push to songforge-lab (and main) deploys.
+
+on:
+  push:
+    branches: [songforge-lab, main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy.yml"
+      - "apps/web/Dockerfile"
+      - "apps/web/fly.toml"
+  workflow_dispatch:
+    inputs:
+      force_target:
+        description: "Force target (auto | fly | railway | build-only)"
+        required: true
+        default: "auto"
+        type: choice
+        options: [auto, fly, railway, build-only]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect target
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.pick.outputs.target }}
+    steps:
+      - id: pick
+        env:
+          FLY: ${{ secrets.FLY_API_TOKEN }}
+          RAILWAY: ${{ secrets.RAILWAY_TOKEN }}
+          FORCE: ${{ github.event.inputs.force_target || 'auto' }}
+        run: |
+          if [ "$FORCE" = "fly" ] || [ "$FORCE" = "railway" ] || [ "$FORCE" = "build-only" ]; then
+            echo "target=$FORCE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$FLY" ]; then
+            echo "target=fly" >> "$GITHUB_OUTPUT"
+          elif [ -n "$RAILWAY" ]; then
+            echo "target=railway" >> "$GITHUB_OUTPUT"
+          else
+            echo "target=build-only" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build web
+    runs-on: ubuntu-latest
+    needs: detect
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile || pnpm install
+
+      - name: Build
+        run: pnpm --filter @songforge/web build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  deploy-fly:
+    name: Deploy · Fly.io
+    runs-on: ubuntu-latest
+    needs: [detect, build]
+    if: needs.detect.outputs.target == 'fly'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: |
+          APP="${{ secrets.FLY_APP_NAME }}"
+          if [ -z "$APP" ]; then APP="songforge-web"; fi
+          flyctl deploy \
+            --config apps/web/fly.toml \
+            --dockerfile apps/web/Dockerfile \
+            --app "$APP" \
+            --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-railway:
+    name: Deploy · Railway
+    runs-on: ubuntu-latest
+    needs: [detect, build]
+    if: needs.detect.outputs.target == 'railway'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy
+        run: |
+          SERVICE="${{ secrets.RAILWAY_SERVICE }}"
+          if [ -z "$SERVICE" ]; then SERVICE="web"; fi
+          railway up --service "$SERVICE" --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  build-only-note:
+    name: No deploy secret yet
+    runs-on: ubuntu-latest
+    needs: [detect, build]
+    if: needs.detect.outputs.target == 'build-only'
+    steps:
+      - name: Instructions
+        run: |
+          echo "Build succeeded."
+          echo ""
+          echo "No FLY_API_TOKEN or RAILWAY_TOKEN secret found."
+          echo "Add one secret in the browser to enable auto-deploy:"
+          echo "  Repo → Settings → Secrets and variables → Actions"
+          echo ""
+          echo "  Fly:     FLY_API_TOKEN"
+          echo "  Railway: RAILWAY_TOKEN"
+          echo ""
+          echo "After that, every push to songforge-lab deploys automatically."

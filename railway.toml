@@ -1,0 +1,11 @@
+# Railway config — no Vercel, no local terminal
+# Service should use this repo + branch songforge-lab
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/web/Dockerfile"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
