@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: [
-    "@songforge/agents",
-    "@songforge/database",
-    "@songforge/release",
-    "@songforge/shared"
-  ]
+  reactStrictMode: true,
+  output: "standalone",
 };
 
-export default nextConfig;
+module.exports = nextConfig;
