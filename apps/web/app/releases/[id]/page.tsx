@@ -7,9 +7,14 @@ import { Shell } from "../../../components/Shell";
 import { StatusTimeline } from "../../../components/StatusTimeline";
 import { releaseTruthLabel } from "../../../lib/release-view";
 
-export default async function ReleaseDetailPage({ params }: { params: { id: string } }) {
+export default async function ReleaseDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const release = await prisma.release.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       project: {
         include: {

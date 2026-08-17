@@ -2,7 +2,6 @@ name: Hygiene
 
 on:
   schedule:
-    # Mondays 09:00 UTC
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
@@ -11,29 +10,14 @@ jobs:
     name: Format · Audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 9
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
+          node-version: 24
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm format:check
         continue-on-error: true
-
-      - name: Dependency audit
-        run: pnpm audit --prod
+      - run: pnpm audit --prod
         continue-on-error: true

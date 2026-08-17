@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  // Silence monorepo package noise during standalone build
+  transpilePackages: [],
 };
 
-module.exports = nextConfig;
+export default nextConfig;
