@@ -1,5 +1,5 @@
 # Songforge web — production image (non-Vercel)
-# Build from monorepo root:
+# Build context MUST be monorepo root:
 #   docker build -f apps/web/Dockerfile -t songforge-web .
 
 FROM node:20-alpine AS base
@@ -10,7 +10,6 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
-# Keep workspace packages present so pnpm does not fail resolution
 COPY packages ./packages
 RUN pnpm install --no-frozen-lockfile
 
@@ -19,9 +18,17 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
+
+# Prove critical Lab files are in the image (fail fast if missing)
+RUN test -f apps/web/components/SongLab.tsx \
+ && test -f apps/web/components/ProjectCard.tsx \
+ && test -f apps/web/components/ApprovalCard.tsx \
+ && test -f apps/web/lib/persistence.ts \
+ && test -f apps/web/lib/forge.ts \
+ && ls -la apps/web/components apps/web/lib
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Prefer apps/web tsconfig paths; ignore broken sibling packages
 WORKDIR /app/apps/web
 RUN pnpm build
 
