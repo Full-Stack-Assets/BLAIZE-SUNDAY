@@ -1,61 +1,41 @@
-# Songforge Lab branch
-
-Creative surface for BLAIZE SUNDAY.
+# Songforge Lab
 
 ## Hard constraints
 
-- **Do not use Vercel.** Deploy with Docker, Fly.io, Railway, Render, or self-hosted.
-- Never mark a release `LIVE` without verified external evidence.
-- Agents prepare; humans authorize irreversible actions.
+- **No Vercel**
+- **No local terminal required for deploy**
+- LIVE release still needs human + verified evidence
 
-## GitHub Actions
+## Auto-deploy (browser only)
 
-| Workflow | Role |
-|----------|------|
-| `ci.yml` | Typecheck · test · web build on PR/push |
-| `db-validate.yml` | Prisma validate on schema changes |
-| `preview.yml` | Docker build + optional Fly/Railway (`workflow_dispatch`) |
+1. Open the repo on GitHub
+2. **Settings → Secrets and variables → Actions → New repository secret**
+3. Add **one** of:
+
+| Secret | From |
+|--------|------|
+| `FLY_API_TOKEN` | https://fly.io/user/personal_access_tokens |
+| `RAILWAY_TOKEN` | Railway → Account → Tokens |
+
+4. Push to `songforge-lab` (or re-run **Actions → Deploy → Run workflow**)
+
+GitHub Actions builds and deploys. No laptop, no CLI, no Vercel.
+
+Optional secrets: `FLY_APP_NAME`, `RAILWAY_SERVICE`, `OPENAI_API_KEY` (remote forge).
+
+## Workflows
+
+| File | Role |
+|------|------|
+| `deploy.yml` | Build + auto-deploy Fly/Railway on push |
+| `ci.yml` | Typecheck · test · build on PR |
+| `db-validate.yml` | Prisma on schema changes |
 | `hygiene.yml` | Weekly format + audit |
 
-## Deploy (non-Vercel)
+## Docker / Fly files
 
-### Docker (any host)
-
-```bash
-# from monorepo root
-docker build -f apps/web/Dockerfile -t songforge-web .
-docker run --rm -p 3000:3000 \
-  -e OPENAI_API_KEY=optional \
-  songforge-web
-```
-
-### Fly.io
-
-```bash
-# once
-fly launch --config apps/web/fly.toml --no-deploy
-# edit app name in fly.toml if needed
-
-fly secrets set OPENAI_API_KEY=...   # optional remote forge
-fly deploy --config apps/web/fly.toml --dockerfile apps/web/Dockerfile
-```
-
-### Railway
-
-Point the service at `apps/web`, build command `pnpm --filter @songforge/web build`, start `pnpm --filter @songforge/web start`, or use the Dockerfile.
-
-## Local run
-
-```bash
-pnpm install
-pnpm --filter @songforge/web dev
-```
-
-## Files
-
-- `apps/web/Dockerfile` — multi-stage production image
-- `apps/web/fly.toml` — Fly scaffold (region `bos`)
-- `.dockerignore` — keeps image lean
-- `next.config.ts` — `output: "standalone"` for the image
+- `apps/web/Dockerfile`
+- `apps/web/fly.toml`
+- `.dockerignore`
 
 PR: https://github.com/Full-Stack-Assets/BLAIZE-SUNDAY/pull/2

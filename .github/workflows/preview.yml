@@ -1,86 +1,27 @@
 name: Preview
 
-# HARD CONSTRAINT: Do not use Vercel.
-# This workflow builds a production image for non-Vercel hosts
-# (Fly.io, Railway, Render, self-hosted Docker, etc.).
-#
-# Optional secrets for auto-deploy (pick one path):
-#   FLY_API_TOKEN          — Fly.io
-#   RAILWAY_TOKEN          — Railway
-#   DOCKER_REGISTRY_TOKEN  — push image to your registry
-#
-# Default: build-only on workflow_dispatch so CI never deploys without intent.
+# Superseded by deploy.yml for real deploys.
+# Kept as a manual Docker build check (no Vercel).
 
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        description: "Deploy target (build-only | fly | railway | none)"
-        required: true
-        default: "build-only"
-        type: choice
-        options:
-          - build-only
-          - fly
-          - railway
-          - none
 
 jobs:
-  build-image:
-    name: Docker build (web)
+  docker-build:
+    name: Docker build check
     runs-on: ubuntu-latest
     timeout-minutes: 25
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build web
-        run: pnpm --filter @songforge/web build
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build image (no push)
-        if: github.event.inputs.target == 'build-only' || github.event.inputs.target == 'none'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./apps/web/Dockerfile
           push: false
-          tags: songforge-web:local
+          tags: songforge-web:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # --- Fly.io (optional) ---
-      - name: Deploy to Fly
-        if: github.event.inputs.target == 'fly'
-        uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: fly deploy
-        if: github.event.inputs.target == 'fly'
-        run: flyctl deploy --remote-only -c apps/web/fly.toml
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      # --- Railway (optional) ---
-      - name: Deploy to Railway
-        if: github.event.inputs.target == 'railway'
-        run: |
-          npm i -g @railway/cli
-          railway up --service web
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
