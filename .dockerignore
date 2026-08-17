@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/.next
+.git
+.github
+**/*.md
+!apps/web/SONGFORGE_LAB.md
+**/dist
+**/.turbo
+**/.pnpm-store
+.env
+.env.*
+!.env.example
+*.zip
+*.pptx
+*.pdf

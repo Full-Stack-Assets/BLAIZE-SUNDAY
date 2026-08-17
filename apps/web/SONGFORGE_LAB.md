@@ -14,24 +14,35 @@ Creative surface for BLAIZE SUNDAY.
 |----------|------|
 | `ci.yml` | Typecheck · test · web build on PR/push |
 | `db-validate.yml` | Prisma validate on schema changes |
-| `preview.yml` | Docker build + optional Fly/Railway deploy (`workflow_dispatch` only) |
+| `preview.yml` | Docker build + optional Fly/Railway (`workflow_dispatch`) |
 | `hygiene.yml` | Weekly format + audit |
 
-## Lab UI (session build)
+## Deploy (non-Vercel)
 
-- AppShell, ProjectCard, layout, globals, tailwind
-- Lab home — new track + project strip
-- Pipeline — agent run log
-- Releases — state machine rail
-- Approvals page
-- Types + forge engine + `/api/forge`
+### Docker (any host)
 
-### Still local / in zip
+```bash
+# from monorepo root
+docker build -f apps/web/Dockerfile -t songforge-web .
+docker run --rm -p 3000:3000 \
+  -e OPENAI_API_KEY=optional \
+  songforge-web
+```
 
-- `components/SongLab.tsx`
-- `lib/persistence.ts`
-- `app/settings/page.tsx`
-- `components/ApprovalCard.tsx`
+### Fly.io
+
+```bash
+# once
+fly launch --config apps/web/fly.toml --no-deploy
+# edit app name in fly.toml if needed
+
+fly secrets set OPENAI_API_KEY=...   # optional remote forge
+fly deploy --config apps/web/fly.toml --dockerfile apps/web/Dockerfile
+```
+
+### Railway
+
+Point the service at `apps/web`, build command `pnpm --filter @songforge/web build`, start `pnpm --filter @songforge/web start`, or use the Dockerfile.
 
 ## Local run
 
@@ -40,19 +51,11 @@ pnpm install
 pnpm --filter @songforge/web dev
 ```
 
-## Deploy (non-Vercel)
+## Files
 
-```bash
-# Docker (self-host / any registry)
-docker build -f apps/web/Dockerfile -t songforge-web .
-docker run -p 3000:3000 songforge-web
-
-# Fly.io
-fly launch --config apps/web/fly.toml   # once
-fly deploy -c apps/web/fly.toml
-
-# Railway
-railway up --service web
-```
+- `apps/web/Dockerfile` — multi-stage production image
+- `apps/web/fly.toml` — Fly scaffold (region `bos`)
+- `.dockerignore` — keeps image lean
+- `next.config.ts` — `output: "standalone"` for the image
 
 PR: https://github.com/Full-Stack-Assets/BLAIZE-SUNDAY/pull/2
