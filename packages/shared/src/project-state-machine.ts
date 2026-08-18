@@ -1,10 +1,12 @@
 export type ProjectState =
   | "IDEA"
+  | "STRATEGY"
   | "WRITING"
   | "PRODUCTION"
   | "VOCALS"
   | "MIXING"
   | "MASTERING"
+  | "SELECTED"
   | "QA"
   | "ASSET_GENERATION"
   | "METADATA"
@@ -18,12 +20,14 @@ export type ProjectState =
   | "ARCHIVED";
 
 export const PROJECT_TRANSITIONS: Record<ProjectState, ProjectState[]> = {
-  IDEA: ["WRITING", "FAILED"],
+  IDEA: ["STRATEGY", "WRITING", "FAILED"],
+  STRATEGY: ["WRITING", "FAILED"],
   WRITING: ["PRODUCTION", "FAILED"],
   PRODUCTION: ["VOCALS", "FAILED"],
   VOCALS: ["MIXING", "FAILED"],
   MIXING: ["MASTERING", "FAILED"],
-  MASTERING: ["QA", "FAILED"],
+  MASTERING: ["SELECTED", "QA", "FAILED"],
+  SELECTED: ["QA", "FAILED"],
   QA: ["ASSET_GENERATION", "WRITING", "PRODUCTION", "MIXING", "FAILED"],
   ASSET_GENERATION: ["METADATA", "FAILED"],
   METADATA: ["DISTRIBUTION_READY", "FAILED"],
@@ -40,3 +44,25 @@ export const PROJECT_TRANSITIONS: Record<ProjectState, ProjectState[]> = {
 export function canProjectTransition(from: ProjectState, to: ProjectState): boolean {
   return PROJECT_TRANSITIONS[from]?.includes(to) ?? false;
 }
+
+export const PORTFOLIO_STATUS: Record<ProjectState, string> = {
+  IDEA: "CONCEPT",
+  STRATEGY: "CONCEPT",
+  WRITING: "WRITING",
+  PRODUCTION: "DEMO",
+  VOCALS: "DEMO",
+  MIXING: "DEMO",
+  MASTERING: "DEMO",
+  SELECTED: "SELECTED",
+  QA: "QA",
+  ASSET_GENERATION: "QA",
+  METADATA: "QA",
+  DISTRIBUTION_READY: "RELEASE_READY",
+  APPROVAL: "RELEASE_READY",
+  SCHEDULED: "RELEASE_READY",
+  RELEASED: "PUBLISHED",
+  MONETIZING: "PUBLISHED",
+  ANALYZED: "PUBLISHED",
+  FAILED: "EXCEPTION",
+  ARCHIVED: "ARCHIVED"
+};

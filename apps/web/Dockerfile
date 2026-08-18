@@ -2,16 +2,16 @@
 # Build context MUST be monorepo root:
 #   docker build -f apps/web/Dockerfile -t songforge-web .
 
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
 
 # ---------- deps ----------
 FROM base AS deps
-COPY package.json pnpm-workspace.yaml ./
-COPY apps/web/package.json ./apps/web/
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps ./apps
 COPY packages ./packages
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # ---------- build ----------
 FROM base AS builder
@@ -29,11 +29,13 @@ RUN test -f apps/web/components/SongLab.tsx \
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DATABASE_URL=postgresql://songforge:songforge@localhost:5432/songforge?schema=public
+RUN pnpm db:generate
 WORKDIR /app/apps/web
 RUN pnpm build
 
 # ---------- runner ----------
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -1,132 +1,81 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getProjects } from "@/lib/persistence";
-import type { SongProject, ReleaseStage } from "@/lib/types";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const STAGES: ReleaseStage[] = [
+const STAGES = [
   "PREPARED",
   "AWAITING_AUTHORIZATION",
   "SUBMITTED",
   "ACCEPTED",
   "SCHEDULED",
-  "LIVE",
-];
+  "LIVE"
+] as const;
+
+interface ReleaseRow {
+  id: string;
+  title: string;
+  status: string;
+  verifiedPlatformUrl: string | null;
+  externalConfirmationId: string | null;
+  project: { title: string | null };
+}
 
 export default function ReleasesPage() {
-  const [projects, setProjects] = useState<SongProject[]>([]);
+  const [releases, setReleases] = useState<ReleaseRow[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setProjects(getProjects());
+    fetch("/api/releases")
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "RELEASES_UNAVAILABLE");
+        setReleases(data.releases ?? []);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "RELEASES_UNAVAILABLE"));
   }, []);
-
-  const inPipeline = projects.filter((p) => p.releaseStage !== null);
-  const notReady = projects.filter((p) => p.releaseStage === null);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <p className="section-label mb-1">Releases</p>
-        <h1 className="text-xl font-medium tracking-tight text-bone">
-          Proof cycle
-        </h1>
+        <h1 className="text-xl font-medium tracking-tight text-bone">Proof cycle</h1>
         <p className="text-[13px] text-ash/50 mt-1">
-          LIVE requires verified external evidence. Nothing skips a gate.
+          PostgreSQL is canonical. LIVE still requires URL + confirmation ID.
         </p>
       </div>
-
-      {inPipeline.length > 0 && (
-        <div className="space-y-3">
-          <p className="section-label">In the machine</p>
-          {inPipeline.map((p) => (
-            <ReleaseCard key={p.id} project={p} />
-          ))}
-        </div>
-      )}
-
-      {notReady.length > 0 && (
-        <div className="space-y-3">
-          <p className="section-label">Not yet prepared</p>
-          {notReady.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3.5"
+      {error ? <p className="text-[13px] text-glitch-magenta">{error}</p> : null}
+      {releases.length === 0 && !error ? (
+        <p className="text-ash/50 text-sm">No Prisma releases yet. Seed the database or run CREATE NEXT RELEASE.</p>
+      ) : null}
+      <div className="space-y-3">
+        {releases.map((release) => {
+          const idx = STAGES.indexOf(release.status as (typeof STAGES)[number]);
+          return (
+            <Link
+              key={release.id}
+              href={`/releases/${release.id}`}
+              className="block rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-3"
             >
-              <div>
-                <p className="text-[14px] font-medium text-bone tracking-tight">
-                  {p.title}
-                </p>
-                <p className="text-[11px] text-ash/50 mt-0.5">
-                  {p.status} · {p.progress}%
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-[15px] font-medium text-bone">{release.title}</h3>
+                  <p className="text-[12px] text-ash/50">{release.project.title}</p>
+                </div>
+                <span className="text-[11px] font-medium text-accent uppercase tracking-wider">
+                  {release.status.replaceAll("_", " ")}
+                </span>
               </div>
-              <span className="text-[11px] text-ash/35 uppercase tracking-wider">
-                No package
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ReleaseCard({ project }: { project: SongProject }) {
-  const stage = project.releaseStage!;
-  const stageIndex = STAGES.indexOf(stage);
-
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-[15px] font-medium text-bone tracking-tight">
-            {project.title}
-          </h3>
-          <p className="text-[12px] text-ash/50 mt-0.5">{project.role}</p>
-        </div>
-        <span className="text-[11px] font-medium text-accent uppercase tracking-wider">
-          {stage.replace(/_/g, " ")}
-        </span>
+              <div className="flex items-center gap-1">
+                {STAGES.map((stage, i) => (
+                  <div key={stage} className={cn("flex-1 h-1 rounded-full", i <= idx ? "bg-accent" : "bg-slate-800")} />
+                ))}
+              </div>
+            </Link>
+          );
+        })}
       </div>
-
-      {/* State machine rail */}
-      <div className="flex items-center gap-1">
-        {STAGES.map((s, i) => (
-          <div key={s} className="flex-1 flex flex-col items-center gap-1.5">
-            <div
-              className={cn(
-                "w-full h-1 rounded-full transition-colors",
-                i <= stageIndex ? "bg-accent" : "bg-slate-800"
-              )}
-            />
-            <span
-              className={cn(
-                "text-[9px] uppercase tracking-wider text-center leading-tight",
-                i === stageIndex
-                  ? "text-accent"
-                  : i < stageIndex
-                    ? "text-ash/50"
-                    : "text-ash/25"
-              )}
-            >
-              {s === "AWAITING_AUTHORIZATION"
-                ? "AUTH"
-                : s === "PREPARED"
-                  ? "PREP"
-                  : s.slice(0, 4)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-[11px] text-ash/40">
-        {stage === "PREPARED" &&
-          "Package ready. Waiting for authorization gate."}
-        {stage === "AWAITING_AUTHORIZATION" &&
-          "Human decision required before any external action."}
-        {stage === "LIVE" && "Verified live. External evidence on file."}
-      </p>
     </div>
   );
 }

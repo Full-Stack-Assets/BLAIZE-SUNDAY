@@ -19,7 +19,11 @@ function emptyLyrics(): Record<SectionId, string> {
 }
 
 function uid(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return `${prefix}_${id}`;
 }
 
 interface Store {
@@ -66,7 +70,7 @@ function seed(): Store {
     notes: "",
     versions: [],
     currentVersionId: null,
-    releaseStage: "PREPARED",
+    releaseStage: null,
   };
 
   const approvals: ApprovalItem[] = [
@@ -159,10 +163,6 @@ export function applyApprovalToProject(item: ApprovalItem) {
   const store = readStore();
   const project = store.projects.find((p) => p.id === item.projectId);
   if (!project) return;
-  if (!project.releaseStage) project.releaseStage = "PREPARED";
-  if (project.releaseStage === "PREPARED") {
-    project.releaseStage = "AWAITING_AUTHORIZATION";
-  }
   project.status = "REVIEW";
   project.progress = Math.max(project.progress, 70);
   writeStore(store);

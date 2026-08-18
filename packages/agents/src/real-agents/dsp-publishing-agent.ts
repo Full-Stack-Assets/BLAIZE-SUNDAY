@@ -1,7 +1,7 @@
 import {
   buildDspChecklist,
   type ReleasePreparationContext
-} from "../../../release/src/payloads.ts";
+} from "@songforge/release";
 
 export class DspPublishingAgent {
   readonly id = "dsp_publishing_agent";

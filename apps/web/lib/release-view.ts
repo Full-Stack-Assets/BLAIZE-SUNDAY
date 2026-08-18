@@ -1,4 +1,4 @@
-import type { DistributionStatus } from "../../../packages/release/src/state-machine.ts";
+import type { DistributionStatus } from "@songforge/release";
 
 export const RELEASE_FLOW = [
   "PREPARED",
