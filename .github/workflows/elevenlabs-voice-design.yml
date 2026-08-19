@@ -2,6 +2,11 @@ name: ElevenLabs Voice Design
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - voice/elevenlabs-design-adapter
+    paths:
+      - ".github/voice-design-trigger"
 
 permissions:
   contents: read
