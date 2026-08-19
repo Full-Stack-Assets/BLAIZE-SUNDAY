@@ -108,6 +108,24 @@ function captionTimelineFromInput(input: AttachCaptionsInput): CaptionTimeline {
   throw new Error("INVALID_CAPTION_FORMAT");
 }
 
+function normalizedResultReceipt(result: ExternalVideoResult) {
+  return {
+    externalStatus: result.status.trim().toLowerCase(),
+    videoUrl: result.videoUrl?.trim() || null,
+    providerMetrics: result.metrics ?? null,
+    providerError: result.error ?? null
+  };
+}
+
+function storedResultReceipt(run: VideoRunRecord) {
+  return {
+    externalStatus: run.externalStatus?.trim().toLowerCase() ?? null,
+    videoUrl: run.videoUrl?.trim() || null,
+    providerMetrics: run.providerMetrics ?? null,
+    providerError: run.providerError ?? null
+  };
+}
+
 export class VideoRunService {
   private readonly repo: VideoRunRepository;
   private readonly technicalInspector?: TechnicalInspector;
@@ -154,6 +172,11 @@ export class VideoRunService {
     const run = await this.repo.get(id);
     if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
 
+    if (run.externalTaskId) {
+      if (run.externalTaskId === normalized) return run;
+      throw new Error("EXTERNAL_TASK_RECEIPT_IMMUTABLE");
+    }
+
     return this.repo.updateExecution(id, {
       status: "PENDING",
       externalTaskId: normalized,
@@ -167,17 +190,22 @@ export class VideoRunService {
   ): Promise<VideoRunRecord> {
     const run = await this.repo.get(id);
     if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
+    if (!run.externalTaskId) throw new Error("EXTERNAL_TASK_RECEIPT_REQUIRED");
 
-    const externalStatus = result.status.trim().toLowerCase();
-    const providerError = result.error ?? null;
-    const videoUrl = result.videoUrl?.trim() || null;
+    const receipt = normalizedResultReceipt(result);
+    if (run.completedAt) {
+      if (hashPayload(storedResultReceipt(run)) === hashPayload(receipt)) return run;
+      throw new Error("EXTERNAL_RESULT_RECEIPT_IMMUTABLE");
+    }
+
+    const { externalStatus, providerError, videoUrl } = receipt;
 
     if (hasFinalError(providerError)) {
       return this.repo.updateExecution(id, {
         status: "FAILED",
         externalStatus,
         videoUrl,
-        providerMetrics: result.metrics ?? null,
+        providerMetrics: receipt.providerMetrics,
         providerError,
         completedAt: new Date().toISOString()
       });
@@ -188,7 +216,7 @@ export class VideoRunService {
         status: "PENDING",
         externalStatus,
         videoUrl,
-        providerMetrics: result.metrics ?? null,
+        providerMetrics: receipt.providerMetrics,
         providerError
       });
     }
@@ -198,7 +226,7 @@ export class VideoRunService {
         status: "CAPTIONS_REQUIRED",
         externalStatus,
         videoUrl,
-        providerMetrics: result.metrics ?? null,
+        providerMetrics: receipt.providerMetrics,
         providerError,
         captionStatus: "MISSING",
         completedAt: new Date().toISOString()
@@ -209,7 +237,7 @@ export class VideoRunService {
       status: "FAILED",
       externalStatus,
       videoUrl,
-      providerMetrics: result.metrics ?? null,
+      providerMetrics: receipt.providerMetrics,
       providerError,
       completedAt: new Date().toISOString()
     });
@@ -300,9 +328,17 @@ export class VideoRunService {
   async runQc(runId: string, input: RunQcInput): Promise<RunQcResult> {
     let run = await this.repo.get(runId);
     if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
+    if (
+      !run.externalTaskId ||
+      run.externalStatus?.trim().toLowerCase() !== "completed" ||
+      !run.videoUrl ||
+      hasFinalError(run.providerError)
+    ) {
+      throw new Error("QC_NOT_READY");
+    }
 
     let technicalMetadata = input.technicalMetadata ?? null;
-    if (!technicalMetadata && this.technicalInspector && run.videoUrl) {
+    if (!technicalMetadata && this.technicalInspector) {
       try {
         technicalMetadata = await this.technicalInspector.inspect(run.videoUrl);
       } catch {
