@@ -24,6 +24,12 @@ const causalTranscript =
 
 const captionSrt = `1\n00:00:00,000 --> 00:00:03,000\nPrimordial density fluctuations seeded structure.\n\n2\n00:00:03,000 --> 00:00:07,000\nDark matter formed the gravitational scaffolding.\n\n3\n00:00:07,000 --> 00:00:12,000\nMatter collected into filaments and nodes, leaving voids.\n`;
 
+async function createTaskedRun(service: VideoRunService, taskId: string) {
+  const run = await service.createRoot(briefInput);
+  await service.attachExternalTask(run.id, taskId);
+  return run;
+}
+
 test("root run waits for connector-mediated Wisebase execution", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
@@ -47,8 +53,7 @@ test("external task attachment moves a run to pending", async () => {
 test("successful Wisebase completion stops at captions required", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
-  await service.attachExternalTask(run.id, "task-123");
+  const run = await createTaskedRun(service, "task-success");
   const completed = await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
@@ -63,7 +68,7 @@ test("successful Wisebase completion stops at captions required", async () => {
 test("provider error fails the run", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
+  const run = await createTaskedRun(service, "task-error");
   const failed = await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
@@ -76,7 +81,7 @@ test("provider error fails the run", async () => {
 test("completed result without a video URL fails closed", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
+  const run = await createTaskedRun(service, "task-no-url");
   const failed = await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: null,
@@ -105,7 +110,7 @@ test("controlled mutation creates a child version in the same lineage", async ()
 test("caption import persists JSON, SRT, and VTT without self-verifying", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
+  const run = await createTaskedRun(service, "task-captions");
   await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
@@ -128,7 +133,7 @@ test("caption import persists JSON, SRT, and VTT without self-verifying", async 
 test("QC promotes only a fully evidenced run to verified", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
+  const run = await createTaskedRun(service, "task-qc-pass");
   await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
@@ -161,7 +166,7 @@ test("QC promotes only a fully evidenced run to verified", async () => {
 test("QC keeps unresolved evidence out of verified state", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
-  const run = await service.createRoot(briefInput);
+  const run = await createTaskedRun(service, "task-qc-unresolved");
   await service.recordExternalResult(run.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
