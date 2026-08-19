@@ -58,3 +58,36 @@ jobs:
 
       - name: Build web
         run: pnpm --filter @songforge/web build
+
+  persist:
+    name: Postgres persist
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: songforge
+          POSTGRES_PASSWORD: songforge
+          POSTGRES_DB: songforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U songforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm --filter @songforge/agents test

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forgeVariation } from "@/lib/forge";
+import { decideForgeExecution } from "@/lib/forge-policy";
 import type { SectionId } from "@/lib/types";
-import { getServerApiKey, LlmConfigurationError, LlmProviderError, operatingMode } from "@songforge/llm";
+import { LlmProviderError } from "@songforge/llm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,37 +20,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const mode = operatingMode();
-    if (mode === "test") {
+    const decision = decideForgeExecution();
+    if (decision.kind === "simulated") {
       return NextResponse.json({
         source: "simulated",
         mode: "test",
         variations: forgeVariation(sectionId, currentText, title || "")
       });
     }
-
-    const apiKey = getServerApiKey();
-    if (!apiKey) {
+    if (decision.kind === "blocked") {
       return NextResponse.json(
-        { ok: false, error: "BLOCKED_CONFIGURATION", source: "none" },
+        { ok: false, error: decision.error, source: decision.source },
         { status: 503 }
       );
     }
 
     const variations = await callRemoteForge({
-      apiKey,
+      apiKey: decision.apiKey,
       sectionId,
       currentText,
       title
     });
     return NextResponse.json({ source: "remote", mode: "live", variations });
   } catch (err) {
-    const code =
-      err instanceof LlmConfigurationError
-        ? err.code
-        : err instanceof LlmProviderError
-          ? err.code
-          : "BLOCKED_PROVIDER";
+    const code = err instanceof LlmProviderError ? err.code : "BLOCKED_PROVIDER";
     return NextResponse.json({ ok: false, error: code, source: "none" }, { status: 502 });
   }
 }

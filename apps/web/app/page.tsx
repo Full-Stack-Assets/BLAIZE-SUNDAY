@@ -6,6 +6,7 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { getProjects, createProject } from "@/lib/persistence";
 import type { SongProject } from "@/lib/types";
 import { CreateNextReleaseButton } from "@/components/CreateNextReleaseButton";
+import { PromoteDraftButton } from "@/components/PromoteDraftButton";
 import { X } from "lucide-react";
 
 export default function LabPage() {
@@ -138,12 +139,15 @@ export default function LabPage() {
 
       {/* The forge */}
       {active && (
-        <SongLab
-          key={active.id}
-          projectId={active.id}
-          title={active.title}
-          onProjectUpdate={handleProjectUpdate}
-        />
+        <div className="space-y-3">
+          <PromoteDraftButton projectId={active.id} />
+          <SongLab
+            key={active.id}
+            projectId={active.id}
+            title={active.title}
+            onProjectUpdate={handleProjectUpdate}
+          />
+        </div>
       )}
     </div>
   );
