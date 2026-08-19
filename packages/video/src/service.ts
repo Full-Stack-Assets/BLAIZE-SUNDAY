@@ -49,7 +49,11 @@ function asBrief(value: unknown): VideoGenerationBrief {
 }
 
 export class VideoRunService {
-  constructor(private readonly repo: VideoRunRepository) {}
+  private readonly repo: VideoRunRepository;
+
+  constructor(repo: VideoRunRepository) {
+    this.repo = repo;
+  }
 
   async createRoot(input: CreateRootInput): Promise<VideoRunRecord> {
     const brief = createVideoBrief(input);
