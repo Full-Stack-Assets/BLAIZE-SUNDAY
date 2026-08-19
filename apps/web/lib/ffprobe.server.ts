@@ -4,7 +4,7 @@ import {
   type ExecFileLike,
   type TechnicalInspector
 } from "@songforge/video";
-import { isTrustedVideoMediaUrl } from "./video-media-url";
+import { isTrustedVideoMediaUrl } from "./video-media-url.ts";
 
 const nodeExecFile: ExecFileLike = (file, args) =>
   new Promise((resolve, reject) => {
