@@ -298,25 +298,21 @@ export class VideoRunService {
       { format: "vtt" as const, content: toVtt(timeline) }
     ];
 
-    const captions: CaptionRecord[] = [];
-    for (const representation of representations) {
-      captions.push(
-        await this.repo.attachCaption({
-          id: randomUUID(),
-          runId,
-          version,
-          locale: timeline.locale,
-          source: input.source,
-          format: representation.format,
-          content: representation.content,
-          contentHash: hashPayload(representation.content),
-          cueCount: timeline.cues.length,
-          startSeconds,
-          endSeconds,
-          sourceMediaHash
-        })
-      );
-    }
+    const pendingCaptions: CaptionRecord[] = representations.map(representation => ({
+      id: randomUUID(),
+      runId,
+      version,
+      locale: timeline.locale,
+      source: input.source,
+      format: representation.format,
+      content: representation.content,
+      contentHash: hashPayload(representation.content),
+      cueCount: timeline.cues.length,
+      startSeconds,
+      endSeconds,
+      sourceMediaHash
+    }));
+    const captions = await this.repo.attachCaptions(pendingCaptions);
 
     const updated = await this.repo.updateExecution(runId, {
       captionStatus: "AVAILABLE"
