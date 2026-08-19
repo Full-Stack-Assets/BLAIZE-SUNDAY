@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiError, readJsonObject, requiredString } from "../../../../../lib/api";
+import { apiError, readJsonObject, requireApprovalActor, requiredString } from "../../../../../lib/api";
 import { createReleaseCommandService } from "../../../../../lib/release-service.server";
 
 export async function POST(
@@ -10,13 +10,11 @@ export async function POST(
   try {
     const { id } = await context.params;
     const body = await readJsonObject(request);
+    const actor = requireApprovalActor(request, body);
     const result = await createReleaseCommandService().prepareDistribution({
       releaseId: id,
       provider: requiredString(body, "provider"),
-      actor:
-        typeof body.actor === "string" && body.actor.trim()
-          ? body.actor.trim()
-          : "distribution_agent"
+      actor
     });
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (error) {

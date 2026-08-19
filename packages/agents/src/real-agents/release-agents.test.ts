@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { ReleasePreparationContext } from "../../../release/src/payloads.ts";
+import type { ReleasePreparationContext } from "@songforge/release";
 import { DistributionAgent } from "./distribution-agent.ts";
 import { DspPublishingAgent } from "./dsp-publishing-agent.ts";
 import { YouTubeAgent } from "./youtube-agent.ts";

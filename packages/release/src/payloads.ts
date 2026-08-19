@@ -1,4 +1,4 @@
-import { hashPayload } from "../../shared/src/domain.ts";
+import { hashPayload } from "@songforge/shared";
 
 export interface ReleasePreparationContext {
   releaseId: string;

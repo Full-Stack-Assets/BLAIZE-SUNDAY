@@ -61,12 +61,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
       - name: Install
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
       - name: Build
         run: pnpm --filter @songforge/web build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
 
   deploy-fly:
     name: Deploy · Fly.io

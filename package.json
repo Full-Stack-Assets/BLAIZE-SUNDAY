@@ -12,8 +12,8 @@
     "build": "pnpm --filter @songforge/web build",
     "start": "pnpm --filter @songforge/web start",
     "dev": "pnpm --filter @songforge/web dev",
-    "worker": "pnpm --filter @songforge/worker dev",
-    "test": "pnpm -r --if-present test",
+    "worker": "pnpm --filter @songforge/worker start",
+    "test": "NODE_OPTIONS='--experimental-strip-types --no-warnings=ExperimentalWarning' pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "pnpm -r --if-present lint",
     "format:check": "prettier --check .",
@@ -21,6 +21,7 @@
     "db:generate": "pnpm --filter @songforge/database db:generate",
     "db:validate": "pnpm --filter @songforge/database db:validate",
     "db:push": "pnpm --filter @songforge/database db:push",
+    "db:migrate": "pnpm --filter @songforge/database db:migrate",
     "db:seed": "pnpm --filter @songforge/database db:seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
@@ -28,7 +29,6 @@
   "devDependencies": {
     "@types/node": "^24.3.0",
     "prettier": "^3.6.2",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "typescript": "^5.9.2"
   }
 }

@@ -5,6 +5,8 @@ import { SongLab } from "@/components/SongLab";
 import { ProjectCard } from "@/components/ProjectCard";
 import { getProjects, createProject } from "@/lib/persistence";
 import type { SongProject } from "@/lib/types";
+import { CreateNextReleaseButton } from "@/components/CreateNextReleaseButton";
+import { PromoteDraftButton } from "@/components/PromoteDraftButton";
 import { X } from "lucide-react";
 
 export default function LabPage() {
@@ -57,6 +59,7 @@ export default function LabPage() {
             Active work
           </h1>
         </div>
+        <CreateNextReleaseButton />
         <button
           onClick={() => setShowNew(true)}
           className="text-[12px] font-medium text-accent hover:text-accent-soft transition-colors"
@@ -136,12 +139,15 @@ export default function LabPage() {
 
       {/* The forge */}
       {active && (
-        <SongLab
-          key={active.id}
-          projectId={active.id}
-          title={active.title}
-          onProjectUpdate={handleProjectUpdate}
-        />
+        <div className="space-y-3">
+          <PromoteDraftButton projectId={active.id} />
+          <SongLab
+            key={active.id}
+            projectId={active.id}
+            title={active.title}
+            onProjectUpdate={handleProjectUpdate}
+          />
+        </div>
       )}
     </div>
   );

@@ -1,74 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ApprovalCard } from "@/components/ApprovalCard";
-import {
-  getApprovals,
-  updateApproval,
-  applyApprovalToProject,
-} from "@/lib/persistence";
-import type { ApprovalItem } from "@/lib/types";
+import { useEffect, useState } from "react";
+
+interface ApprovalRow {
+  id: string;
+  actionType: string;
+  status: string;
+  payloadHash: string;
+  payload: unknown;
+  requestedBy: string;
+  project: { title: string | null };
+}
 
 export default function ApprovalsPage() {
-  const [items, setItems] = useState<ApprovalItem[]>([]);
+  const [items, setItems] = useState<ApprovalRow[]>([]);
+  const [token, setToken] = useState("");
+  const [error, setError] = useState("");
+
+  function load() {
+    fetch("/api/approvals")
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "APPROVALS_UNAVAILABLE");
+        setItems(data.approvals ?? []);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "APPROVALS_UNAVAILABLE"));
+  }
 
   useEffect(() => {
-    setItems(getApprovals());
+    setToken(localStorage.getItem("songforge.operatorToken") || "");
+    load();
   }, []);
 
-  const handleAction = (id: string, status: ApprovalItem["status"]) => {
-    const next = updateApproval(id, status);
-    setItems(next);
-
-    // When approved, push the decision into the project + release state machine
-    if (status === "APPROVED") {
-      const item = next.find((i) => i.id === id);
-      if (item) applyApprovalToProject(item);
+  async function resolve(id: string, decision: "approve" | "reject" | "request-revision", payload: unknown) {
+    const response = await fetch(`/api/approvals/${id}/${decision}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+        body: JSON.stringify({
+        actor: "operator",
+        payload,
+        note: decision === "reject" ? "Rejected from queue" : "Revise package"
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      setError(result.error ?? "APPROVAL_FAILED");
+      return;
     }
-  };
-
-  const pending = items.filter(
-    (i) => i.status === "PENDING" || i.status === "NEEDS_CHANGES"
-  );
-  const resolved = items.filter(
-    (i) => i.status === "APPROVED" || i.status === "REJECTED"
-  );
+    load();
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <p className="section-label mb-1">Approvals</p>
-        <h1 className="text-xl font-medium tracking-tight text-bone">
-          Decision queue
-        </h1>
-        <p className="text-[13px] text-ash/50 mt-1">
-          One gate at a time. Nothing moves without a clear yes or no.
-        </p>
+        <h1 className="text-xl font-medium tracking-tight text-bone">Payload-bound queue</h1>
       </div>
-
-      {pending.length === 0 && resolved.length === 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-8 text-center">
-          <p className="text-ash/50 text-sm">Queue is empty.</p>
+      {error ? <p className="text-[13px] text-glitch-magenta">{error}</p> : null}
+      {items.length === 0 && !error ? <p className="text-ash/50 text-sm">No Prisma approvals.</p> : null}
+      {items.map((item) => (
+        <div key={item.id} className="rounded-2xl border border-slate-800 p-4 space-y-2">
+          <p className="text-[14px] text-bone">{item.actionType}</p>
+          <p className="text-[11px] text-ash/50 font-mono break-all">{item.payloadHash}</p>
+          <p className="text-[12px] text-ash/60">{item.project.title} · {item.status}</p>
+          {item.status === "PENDING" ? (
+            <div className="flex gap-2">
+              <button className="h-9 px-3 rounded-lg bg-accent text-void text-[12px]" onClick={() => resolve(item.id, "approve", item.payload)}>Approve</button>
+              <button className="h-9 px-3 rounded-lg border border-slate-700 text-[12px]" onClick={() => resolve(item.id, "request-revision", item.payload)}>Revision</button>
+              <button className="h-9 px-3 rounded-lg border border-slate-700 text-[12px]" onClick={() => resolve(item.id, "reject", item.payload)}>Reject</button>
+            </div>
+          ) : null}
         </div>
-      )}
-
-      {pending.length > 0 && (
-        <div className="space-y-3">
-          <p className="section-label">Needs decision</p>
-          {pending.map((item) => (
-            <ApprovalCard key={item.id} item={item} onAction={handleAction} />
-          ))}
-        </div>
-      )}
-
-      {resolved.length > 0 && (
-        <div className="space-y-3">
-          <p className="section-label">Resolved</p>
-          {resolved.map((item) => (
-            <ApprovalCard key={item.id} item={item} onAction={handleAction} />
-          ))}
-        </div>
-      )}
+      ))}
     </div>
   );
 }

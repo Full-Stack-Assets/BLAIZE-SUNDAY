@@ -5,14 +5,22 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "node --test src/**/*.test.ts",
+    "test": "node --test src/**/*.test.ts src/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "@songforge/canon": "workspace:*",
+    "@songforge/database": "workspace:*",
+    "@songforge/llm": "workspace:*",
     "@songforge/release": "workspace:*",
-    "@songforge/shared": "workspace:*"
+    "@songforge/shared": "workspace:*",
+    "@songforge/voice": "workspace:*",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "typescript": "^5.5.4"
   }
 }
