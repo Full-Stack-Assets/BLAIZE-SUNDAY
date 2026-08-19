@@ -3,9 +3,13 @@ import {
   VideoRunService,
   type VideoRunRecord
 } from "@songforge/video";
+import { createNodeFfprobeInspector } from "./ffprobe.server";
 
 export const videoRunRepository = new PrismaVideoRunRepository();
-export const videoRunService = new VideoRunService(videoRunRepository);
+export const videoRunService = new VideoRunService(
+  videoRunRepository,
+  createNodeFfprobeInspector()
+);
 
 export function executionPayloadFromRun(run: VideoRunRecord) {
   const brief = run.brief as { locale?: string };
