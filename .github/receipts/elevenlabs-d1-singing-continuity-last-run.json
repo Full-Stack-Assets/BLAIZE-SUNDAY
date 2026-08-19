@@ -1,0 +1,22 @@
+{
+  "voiceIdentity": "SUNDAY AFTER MIDNIGHT",
+  "candidate": "D1",
+  "targetVoiceId": "j9nOYxfwt3sxAi32BnNI",
+  "provider": "elevenlabs",
+  "operation": "voice_changer_singing_continuity_probe",
+  "modelId": "eleven_multilingual_sts_v2",
+  "sourcePerformance": {
+    "url": "https://cdn-editing-temp.picsart.com/editing-temp/64e7a442-b745-4706-af23-eb943067d53a.mp3",
+    "identityUse": "PERFORMANCE_ONLY_NOT_IDENTITY_EVIDENCE",
+    "sha256": "1775fcdbe6fc7f11bdbb0447eac4f2f920c3da44fc01dc456d3067787bb414d3",
+    "bytes": 673937
+  },
+  "output": {
+    "file": "D1_SINGING_CONTINUITY.mp3",
+    "sha256": "b6997b936b4e0d7e9ba6bfae223a0ba50be564bc0b84e94e37c75aeb0653b915",
+    "bytes": 336083
+  },
+  "claimState": "GENERATED_NOT_YET_CERTIFIED",
+  "humanReviewRequired": true,
+  "g2Locked": false
+}
