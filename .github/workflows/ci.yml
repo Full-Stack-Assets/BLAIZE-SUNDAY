@@ -45,13 +45,17 @@ jobs:
       - name: Install
         run: pnpm install --no-frozen-lockfile
 
+      - name: Prisma validate
+        run: pnpm db:validate
+
+      - name: Prisma generate
+        run: pnpm db:generate
+
       - name: Typecheck
         run: pnpm typecheck
-        continue-on-error: true
 
       - name: Test
         run: pnpm test
-        continue-on-error: true
 
       - name: Build web
         run: pnpm --filter @songforge/web build
