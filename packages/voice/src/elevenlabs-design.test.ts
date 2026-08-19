@@ -3,8 +3,11 @@ import test from "node:test";
 
 import {
   createDesignedVoice,
+  createSundayAfterMidnightVoice,
+  designSundayAfterMidnightPreviews,
   designVoicePreviews,
   ElevenLabsVoiceDesignError,
+  SUNDAY_AFTER_MIDNIGHT_DESIGN,
   type HumanVoicePersistenceApproval,
   type VoiceDesignFetch,
 } from "./elevenlabs-design.ts";
@@ -174,4 +177,69 @@ test("approved permanent creation sends only the selected generated voice id and
   assert.equal(result.voiceId, "persistent-voice-1");
   assert.equal(result.isOwner, true);
   assert.equal(result.approvalId, approval.approvalId);
+});
+
+test("SUNDAY AFTER MIDNIGHT design contract is provider-neutral and excludes B3 source identity", () => {
+  assert.equal(SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceName, "SUNDAY AFTER MIDNIGHT");
+  assert.equal(SUNDAY_AFTER_MIDNIGHT_DESIGN.modelId, "eleven_ttv_v3");
+  assert.match(SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription, /low-mid/i);
+  assert.match(SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription, /clean sibilants/i);
+  assert.match(SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription, /emotionally guarded/i);
+  assert.doesNotMatch(
+    SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription,
+    /B3|Gerardo|HeyGen|living performer/i,
+  );
+});
+
+test("canonical preview helper sends only the locked SUNDAY AFTER MIDNIGHT text design", async () => {
+  let capturedBody: Record<string, unknown> = {};
+  const fetchImpl: VoiceDesignFetch = async (_input, init) => {
+    capturedBody = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+    return jsonResponse({
+      ...designResponse,
+      text: SUNDAY_AFTER_MIDNIGHT_DESIGN.previewText,
+    });
+  };
+
+  await designSundayAfterMidnightPreviews({ apiKey: "server-secret", fetchImpl });
+
+  assert.equal(
+    capturedBody.voice_description,
+    SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription,
+  );
+  assert.equal(capturedBody.text, SUNDAY_AFTER_MIDNIGHT_DESIGN.previewText);
+  assert.equal(capturedBody.model_id, SUNDAY_AFTER_MIDNIGHT_DESIGN.modelId);
+  assert.equal(capturedBody.seed, SUNDAY_AFTER_MIDNIGHT_DESIGN.seed);
+  assert.equal("reference_audio_base64" in capturedBody, false);
+});
+
+test("canonical persistence helper fixes identity metadata and still requires approval", async () => {
+  const approval: HumanVoicePersistenceApproval = {
+    approved: true,
+    approvedBy: "artist-principal",
+    approvalId: "g2-voice-persistence-approval-2",
+  };
+  let capturedBody: Record<string, unknown> = {};
+  const fetchImpl: VoiceDesignFetch = async (_input, init) => {
+    capturedBody = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+    return jsonResponse({
+      voice_id: "persistent-sam-1",
+      name: "SUNDAY AFTER MIDNIGHT",
+      is_owner: true,
+    });
+  };
+
+  await createSundayAfterMidnightVoice(
+    "generated-3",
+    approval,
+    { apiKey: "server-secret", fetchImpl },
+  );
+
+  assert.equal(capturedBody.voice_name, "SUNDAY AFTER MIDNIGHT");
+  assert.equal(capturedBody.voice_description, SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription);
+  assert.deepEqual(capturedBody.labels, {
+    artist: "BLAIZE SUNDAY",
+    canon: "SUNDAY AFTER MIDNIGHT",
+    voice_identity_id: "blaize-sunday/sunday-after-midnight",
+  });
 });
