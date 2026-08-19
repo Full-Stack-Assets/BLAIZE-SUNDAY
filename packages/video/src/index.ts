@@ -1,3 +1,4 @@
+export * from "./captions.ts";
 export * from "./domain.ts";
 export * from "./prompt.ts";
 export * from "./repository.ts";
