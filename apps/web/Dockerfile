@@ -18,6 +18,8 @@ RUN pnpm install --no-frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+# Preserve each workspace package's pnpm links and local binaries (Prisma, etc.).
+COPY --from=deps /app/packages ./packages
 COPY . .
 
 # Prove critical Lab files are in the image (fail fast if missing)
