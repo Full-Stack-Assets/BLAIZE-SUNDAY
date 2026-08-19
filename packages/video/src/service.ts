@@ -1,12 +1,22 @@
 import { randomUUID } from "node:crypto";
 import { hashPayload } from "@songforge/shared";
 import {
+  normalizeCaptionTimeline,
+  parseSrt,
+  parseVtt,
+  toSrt,
+  toVtt,
+  type CaptionTimeline
+} from "./captions.ts";
+import {
   createVideoBrief,
   type VideoGenerationBrief,
   type VideoMutation
 } from "./domain.ts";
 import { compileWisebasePayload, mutateVideoBrief } from "./prompt.ts";
 import type {
+  CaptionRecord,
+  CaptionSource,
   VideoRunRecord,
   VideoRunRepository
 } from "./repository.ts";
@@ -16,6 +26,21 @@ export interface ExternalVideoResult {
   videoUrl?: string | null;
   metrics?: unknown | null;
   error?: unknown | null;
+}
+
+export interface AttachCaptionsInput {
+  source: CaptionSource;
+  locale: string;
+  format?: "srt" | "vtt" | "json";
+  content?: string;
+  timeline?: CaptionTimeline;
+  sourceMediaHash?: string | null;
+}
+
+export interface AttachCaptionsResult {
+  run: VideoRunRecord;
+  timeline: CaptionTimeline;
+  captions: CaptionRecord[];
 }
 
 type CreateRootInput = Parameters<typeof createVideoBrief>[0];
@@ -46,6 +71,24 @@ function asBrief(value: unknown): VideoGenerationBrief {
     throw new Error("INVALID_VIDEO_BRIEF");
   }
   return value as VideoGenerationBrief;
+}
+
+function captionTimelineFromInput(input: AttachCaptionsInput): CaptionTimeline {
+  if (input.timeline) return normalizeCaptionTimeline(input.timeline);
+  const content = input.content ?? "";
+  if (input.format === "srt") return parseSrt(content, input.locale);
+  if (input.format === "vtt") return parseVtt(content, input.locale);
+  if (input.format === "json") {
+    try {
+      return normalizeCaptionTimeline(JSON.parse(content) as CaptionTimeline);
+    } catch (error) {
+      if (error instanceof Error && error.message !== "Unexpected end of JSON input") {
+        throw error;
+      }
+      throw new Error("INVALID_CAPTION_FORMAT");
+    }
+  }
+  throw new Error("INVALID_CAPTION_FORMAT");
 }
 
 export class VideoRunService {
@@ -185,5 +228,53 @@ export class VideoRunService {
       status: "AWAITING_EXTERNAL_EXECUTION",
       ...emptyExecutionFields
     });
+  }
+
+  async attachCaptions(
+    runId: string,
+    input: AttachCaptionsInput
+  ): Promise<AttachCaptionsResult> {
+    const run = await this.repo.get(runId);
+    if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
+
+    const timeline = captionTimelineFromInput(input);
+    const existing = await this.repo.listCaptions(runId);
+    const version = existing.length
+      ? Math.max(...existing.map(item => item.version)) + 1
+      : 1;
+    const startSeconds = timeline.cues[0]?.startSeconds ?? 0;
+    const endSeconds = timeline.cues.at(-1)?.endSeconds ?? 0;
+    const sourceMediaHash = input.sourceMediaHash ?? null;
+    const representations = [
+      { format: "json" as const, content: JSON.stringify(timeline) },
+      { format: "srt" as const, content: toSrt(timeline) },
+      { format: "vtt" as const, content: toVtt(timeline) }
+    ];
+
+    const captions: CaptionRecord[] = [];
+    for (const representation of representations) {
+      captions.push(
+        await this.repo.attachCaption({
+          id: randomUUID(),
+          runId,
+          version,
+          locale: timeline.locale,
+          source: input.source,
+          format: representation.format,
+          content: representation.content,
+          contentHash: hashPayload(representation.content),
+          cueCount: timeline.cues.length,
+          startSeconds,
+          endSeconds,
+          sourceMediaHash
+        })
+      );
+    }
+
+    const updated = await this.repo.updateExecution(runId, {
+      captionStatus: "AVAILABLE"
+    });
+
+    return { run: updated, timeline, captions };
   }
 }
