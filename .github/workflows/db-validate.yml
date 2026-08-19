@@ -15,6 +15,8 @@ jobs:
     name: Prisma validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/songforge?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -23,6 +25,4 @@ jobs:
           node-version: 24
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm db:generate
-        continue-on-error: true
       - run: pnpm db:validate
-        continue-on-error: true
