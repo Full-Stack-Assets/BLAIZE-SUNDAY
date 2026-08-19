@@ -47,8 +47,9 @@ jobs:
       - name: Install
         run: pnpm install --no-frozen-lockfile
 
-      # Repository-wide Prettier currently reports 90 pre-existing files.
-      # That baseline is documented in PR #7 instead of being hidden behind continue-on-error.
+      # A repository-wide Prettier probe currently reports 90 files across
+      # existing Songforge code/docs and this feature. PR #7 records that debt;
+      # this workflow keeps functional gates strict without unrelated mass formatting.
       - name: Git whitespace check
         run: git diff --check
 
