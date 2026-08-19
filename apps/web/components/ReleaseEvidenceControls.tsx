@@ -95,12 +95,10 @@ export function ReleaseEvidenceControls({
           <label htmlFor="operator">Operator</label>
           <input id="operator" value={actor} onChange={event => setActor(event.target.value)} placeholder="Operator identity" />
         </div>
-        {status !== "PREPARED" ? (
-          <div className="field">
-            <label htmlFor="evidence-token">Approval token</label>
-            <input id="evidence-token" type="password" value={token} onChange={event => setToken(event.target.value)} />
-          </div>
-        ) : null}
+        <div className="field">
+          <label htmlFor="evidence-token">Approval token</label>
+          <input id="evidence-token" type="password" value={token} onChange={event => setToken(event.target.value)} />
+        </div>
         {status !== "PREPARED" ? (
           <div className="field">
             <label htmlFor="confirmation">External confirmation ID</label>
