@@ -19,6 +19,11 @@ const briefInput = {
   visualRequirements: ["dark space", "cyan/gold accents"]
 };
 
+const causalTranscript =
+  "Primordial density fluctuations seeded structure. Dark matter formed the gravitational scaffolding while matter collected into filaments and nodes, leaving voids between them.";
+
+const captionSrt = `1\n00:00:00,000 --> 00:00:03,000\nPrimordial density fluctuations seeded structure.\n\n2\n00:00:03,000 --> 00:00:07,000\nDark matter formed the gravitational scaffolding.\n\n3\n00:00:07,000 --> 00:00:12,000\nMatter collected into filaments and nodes, leaving voids.\n`;
+
 test("root run waits for connector-mediated Wisebase execution", async () => {
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
@@ -118,4 +123,61 @@ test("caption import persists JSON, SRT, and VTT without self-verifying", async 
   assert.equal(result.run.status, "CAPTIONS_REQUIRED");
   assert.deepEqual(result.captions.map(item => item.format).sort(), ["json", "srt", "vtt"]);
   assert.ok(result.captions.every(item => item.version === 1));
+});
+
+test("QC promotes only a fully evidenced run to verified", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await service.createRoot(briefInput);
+  await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    error: { final_error: null }
+  });
+  await service.attachCaptions(run.id, {
+    source: "MANUAL_IMPORT",
+    locale: "en",
+    format: "srt",
+    content: captionSrt
+  });
+
+  const result = await service.runQc(run.id, {
+    transcript: causalTranscript,
+    technicalMetadata: {
+      durationSeconds: 60,
+      width: 1280,
+      height: 720,
+      fps: 24
+    },
+    staticEndingRisk: false
+  });
+
+  assert.equal(result.receipt.verified, true);
+  assert.equal(result.run.status, "VERIFIED");
+  assert.equal(result.run.durationSeconds, 60);
+  assert.equal(result.run.fps, 24);
+});
+
+test("QC keeps unresolved evidence out of verified state", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await service.createRoot(briefInput);
+  await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    error: { final_error: null }
+  });
+  await service.attachCaptions(run.id, {
+    source: "MANUAL_IMPORT",
+    locale: "en",
+    format: "srt",
+    content: captionSrt
+  });
+
+  const result = await service.runQc(run.id, {});
+
+  assert.equal(result.receipt.verified, false);
+  assert.equal(result.run.status, "NEEDS_REVISION");
+  assert.ok(result.receipt.unresolved.includes("TECHNICAL_METADATA_UNAVAILABLE"));
+  assert.ok(result.receipt.unresolved.includes("UNKNOWN_COVERAGE"));
 });
