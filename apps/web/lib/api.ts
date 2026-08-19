@@ -89,9 +89,10 @@ export function apiError(error: unknown) {
             "VALID_SCHEDULE_DATE_REQUIRED",
             "PROVIDER_MISMATCH",
             "RELEASE_PACKAGE_INCOMPLETE",
-            "RELEASE_NOT_PREPARED"
+            "RELEASE_NOT_PREPARED",
+            "LAB_RELEASE_SERVICE_UNAVAILABLE"
           ].includes(code)
-          ? 400
+          ? code === "LAB_RELEASE_SERVICE_UNAVAILABLE" ? 503 : 400
           : 500;
 
   return NextResponse.json(

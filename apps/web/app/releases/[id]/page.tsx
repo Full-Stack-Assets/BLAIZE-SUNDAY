@@ -12,35 +12,6 @@ export default async function ReleaseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const release = await prisma.release.findUnique({
-    where: { id },
-    include: {
-      project: {
-        include: {
-          metadata: true,
-          rights: true,
-          audioAssets: { orderBy: { createdAt: "desc" } },
-          visualAssets: { orderBy: { createdAt: "desc" } }
-        }
-      },
-      approvals: { orderBy: { requestedAt: "desc" } },
-      actionPackages: { orderBy: { createdAt: "desc" } },
-      events: { orderBy: { createdAt: "asc" } },
-      receipts: { orderBy: { createdAt: "asc" } },
-      revisions: { orderBy: { createdAt: "asc" } }
-    }
-  });
-  if (!release) notFound();
-
-  const latestPackage = release.actionPackages[0] ?? null;
-  const approvedApproval = release.approvals.find(
-    approval => approval.status === "APPROVED" && approval.payloadHash === latestPackage?.payloadHash
-  );
-  const truth = releaseTruthLabel({
-    status: release.status,
-    verifiedPlatformUrl: release.verifiedPlatformUrl,
-    externalConfirmationId: release.externalConfirmationId
-  });
 
   return (
     <div className="space-y-4">

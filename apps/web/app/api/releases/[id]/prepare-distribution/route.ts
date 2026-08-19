@@ -4,7 +4,7 @@ import { apiError, readJsonObject, requireApprovalActor, requiredString } from "
 import { createReleaseCommandService } from "../../../../../lib/release-service.server";
 
 export async function POST(
-  request: Request,
+  _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
