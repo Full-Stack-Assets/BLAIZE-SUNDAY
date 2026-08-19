@@ -14,12 +14,17 @@ import {
   type VideoMutation
 } from "./domain.ts";
 import { compileWisebasePayload, mutateVideoBrief } from "./prompt.ts";
+import { evaluateVideoQc, type VideoQcReceipt } from "./qc.ts";
 import type {
   CaptionRecord,
   CaptionSource,
   VideoRunRecord,
   VideoRunRepository
 } from "./repository.ts";
+import type {
+  TechnicalInspector,
+  TechnicalMetadata
+} from "./technical-inspection.ts";
 
 export interface ExternalVideoResult {
   status: string;
@@ -41,6 +46,18 @@ export interface AttachCaptionsResult {
   run: VideoRunRecord;
   timeline: CaptionTimeline;
   captions: CaptionRecord[];
+}
+
+export interface RunQcInput {
+  transcript?: string | null;
+  technicalMetadata?: TechnicalMetadata | null;
+  staticEndingRisk?: boolean;
+  coverageAliases?: Record<string, string[]>;
+}
+
+export interface RunQcResult {
+  run: VideoRunRecord;
+  receipt: VideoQcReceipt;
 }
 
 type CreateRootInput = Parameters<typeof createVideoBrief>[0];
@@ -93,9 +110,11 @@ function captionTimelineFromInput(input: AttachCaptionsInput): CaptionTimeline {
 
 export class VideoRunService {
   private readonly repo: VideoRunRepository;
+  private readonly technicalInspector?: TechnicalInspector;
 
-  constructor(repo: VideoRunRepository) {
+  constructor(repo: VideoRunRepository, technicalInspector?: TechnicalInspector) {
     this.repo = repo;
+    this.technicalInspector = technicalInspector;
   }
 
   async createRoot(input: CreateRootInput): Promise<VideoRunRecord> {
@@ -276,5 +295,45 @@ export class VideoRunService {
     });
 
     return { run: updated, timeline, captions };
+  }
+
+  async runQc(runId: string, input: RunQcInput): Promise<RunQcResult> {
+    let run = await this.repo.get(runId);
+    if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
+
+    let technicalMetadata = input.technicalMetadata ?? null;
+    if (!technicalMetadata && this.technicalInspector && run.videoUrl) {
+      try {
+        technicalMetadata = await this.technicalInspector.inspect(run.videoUrl);
+      } catch {
+        technicalMetadata = null;
+      }
+    }
+
+    if (technicalMetadata) {
+      run = await this.repo.updateExecution(runId, {
+        durationSeconds: technicalMetadata.durationSeconds,
+        width: technicalMetadata.width,
+        height: technicalMetadata.height,
+        fps: technicalMetadata.fps
+      });
+    }
+
+    const captions = await this.repo.listCaptions(runId);
+    const receipt = evaluateVideoQc({
+      run,
+      captions,
+      transcript: input.transcript,
+      technicalMetadata,
+      staticEndingRisk: input.staticEndingRisk,
+      coverageAliases: input.coverageAliases
+    });
+    const status = receipt.verified
+      ? "VERIFIED"
+      : receipt.failures.length
+        ? "QC_FAILED"
+        : "NEEDS_REVISION";
+    const saved = await this.repo.saveQc(runId, status, receipt);
+    return { run: saved, receipt };
   }
 }
