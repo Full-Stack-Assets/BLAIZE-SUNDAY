@@ -1,4 +1,4 @@
-import { runCreateNextReleaseGraph } from "@songforge/agents";
+import { executeCreateNextRelease } from "@songforge/agents";
 
 const redisUrl = process.env.REDIS_URL;
 
@@ -18,13 +18,8 @@ async function main() {
   const worker = new Worker(
     "songforge-workflows",
     async (job) => {
-      const data = job.data as {
-        artistId: string;
-        idempotencyKey: string;
-        mode: "live" | "test";
-        existingTitles: string[];
-      };
-      return runCreateNextReleaseGraph(data);
+      const data = job.data as { actor: string; idempotencyKey: string };
+      return executeCreateNextRelease(data);
     },
     { connection }
   );

@@ -10,7 +10,10 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@prisma/client": "^5.18.0",
     "@songforge/canon": "workspace:*",
+    "@songforge/database": "workspace:*",
+    "@songforge/llm": "workspace:*",
     "@songforge/release": "workspace:*",
     "@songforge/shared": "workspace:*",
     "@songforge/voice": "workspace:*",

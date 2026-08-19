@@ -24,6 +24,8 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "bullmq": "^5.34.5",
+    "ioredis": "^5.4.2",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.4",
     "lucide-react": "^0.460.0",

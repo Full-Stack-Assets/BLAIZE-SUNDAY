@@ -24,7 +24,11 @@ export function CreateNextReleaseButton() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "CREATE_FAILED");
-      setMessage(`Queued ${result.projectId}`);
+      setMessage(
+        result.projectId
+          ? `Queued project ${result.projectId}`
+          : `Queued workflow ${result.workflowId}`
+      );
       router.push(`/projects`);
       router.refresh();
     } catch (error) {

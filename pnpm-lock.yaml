@@ -50,12 +50,18 @@ importers:
       '@songforge/voice':
         specifier: workspace:*
         version: link:../../packages/voice
+      bullmq:
+        specifier: ^5.34.5
+        version: 5.81.3
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      ioredis:
+        specifier: ^5.4.2
+        version: 5.11.1
       lucide-react:
         specifier: ^0.460.0
         version: 0.460.0(react@19.2.8)
@@ -127,9 +133,18 @@ importers:
 
   packages/agents:
     dependencies:
+      '@prisma/client':
+        specifier: ^5.18.0
+        version: 5.22.0(prisma@5.22.0)
       '@songforge/canon':
         specifier: workspace:*
         version: link:../canon
+      '@songforge/database':
+        specifier: workspace:*
+        version: link:../database
+      '@songforge/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@songforge/release':
         specifier: workspace:*
         version: link:../release

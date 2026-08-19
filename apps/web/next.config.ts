@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  serverExternalPackages: ["bullmq", "ioredis"],
   transpilePackages: [
     "@songforge/agents",
     "@songforge/canon",
