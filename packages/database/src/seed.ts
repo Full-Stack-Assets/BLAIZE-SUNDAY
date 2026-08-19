@@ -124,6 +124,38 @@ const B3_REFERENCE_ASSETS = {
   }
 } as const;
 
+const SUNDAY_AFTER_MIDNIGHT_D1 = {
+  voiceIdentityId: "blaize-sunday/sunday-after-midnight",
+  internalCandidate: "D1",
+  provider: "elevenlabs",
+  providerVoiceId: "j9nOYxfwt3sxAi32BnNI",
+  providerAssetClass: "generated_persistent",
+  status: "D1_PERSISTED_G2_PENDING",
+  approvalId: "BLAIZE-G2-D1-SELECTION-2026-08-19",
+  sourceDesignRunId: 32251130820,
+  persistenceRunId: 32251778352,
+  sourceDesignRequestHash: "b322cfdba80af75eec24ce4798b4de6bf0941b0c4ff7e2c644564828f25fa76b",
+  rights: {
+    ownership: "PROVIDER_HOSTED_GENERATED_VOICE",
+    referenceAudioUsed: false,
+    commercialContinuity: "PENDING_PROVIDER_RIGHTS_REVIEW"
+  },
+  modes: {
+    sundayTalk: { speed: 0.92, stability: 0.58, similarityBoost: 0.82, style: 0.1 },
+    blaizeMode: { speed: 1.08, stability: 0.42, similarityBoost: 0.84, style: 0.28 },
+    velvet: { speed: 0.86, stability: 0.5, similarityBoost: 0.86, style: 0.22 },
+    zeroStatic: { speed: 0.78, stability: 0.68, similarityBoost: 0.88, style: 0.04 }
+  },
+  g2: {
+    locked: false,
+    singingValidated: false,
+    productionScalingAuthorized: false,
+    aggregateSamePerformerRecognition: 0.7,
+    minimumModePairRecognition: 0.6,
+    minimumValidIndependentRaters: 12
+  }
+} as const;
+
 async function main() {
   const artist = await prisma.artist.upsert({
     where: { slug: "blaize-sunday" },
@@ -144,12 +176,38 @@ async function main() {
 
   await prisma.voiceProfile.upsert({
     where: { artistId: artist.id },
-    update: { verificationStatus: "UNCONFIGURED" },
+    update: {
+      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
+      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
+      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
+      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
+      approvedReferenceAssets: [
+        {
+          candidate: "D1",
+          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
+          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
+          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
+          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
+          referenceAudioUsed: false
+        }
+      ]
+    },
     create: {
       artistId: artist.id,
-      verificationStatus: "UNCONFIGURED",
-      vocalSettings: { name: CANON.voiceName },
-      approvedReferenceAssets: []
+      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
+      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
+      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
+      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
+      approvedReferenceAssets: [
+        {
+          candidate: "D1",
+          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
+          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
+          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
+          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
+          referenceAudioUsed: false
+        }
+      ]
     }
   });
 
