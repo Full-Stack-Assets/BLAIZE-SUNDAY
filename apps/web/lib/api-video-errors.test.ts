@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { apiError } from "./api.ts";
+import { apiStatusForCode } from "./api-error-status.ts";
 
 for (const code of [
   "EXTERNAL_TASK_RECEIPT_REQUIRED",
@@ -11,10 +11,10 @@ for (const code of [
   "QC_NOT_READY"
 ]) {
   test(`${code} maps to HTTP 409`, () => {
-    assert.equal(apiError(new Error(code)).status, 409);
+    assert.equal(apiStatusForCode(code), 409);
   });
 }
 
 test("video run not found remains HTTP 404", () => {
-  assert.equal(apiError(new Error("VIDEO_RUN_NOT_FOUND")).status, 404);
+  assert.equal(apiStatusForCode("VIDEO_RUN_NOT_FOUND"), 404);
 });
