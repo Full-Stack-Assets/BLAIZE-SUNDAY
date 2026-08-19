@@ -76,3 +76,11 @@ jobs:
 
       - name: Verify standalone server layout
         run: test -f apps/web/.next/standalone/apps/web/server.js
+
+      - name: Build production container
+        run: docker build -f apps/web/Dockerfile -t songforge-web-ci .
+
+      - name: Verify production container runtime
+        run: |
+          docker run --rm --entrypoint sh songforge-web-ci -c \
+            'test -f /app/apps/web/server.js && command -v ffprobe'
