@@ -1,0 +1,155 @@
+name: Persist D1 and render G2 proxies
+
+on:
+  push:
+    branches:
+      - voice/elevenlabs-design-adapter
+    paths:
+      - ".github/workflows/elevenlabs-persist-d1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  persist-and-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      OUTPUT_DIR: artifacts/voice-d1-g2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Verify ElevenLabs secret
+        shell: bash
+        run: test -n "$ELEVENLABS_API_KEY"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Persist D1 and render canonical speech modes
+        shell: bash
+        run: |
+          mkdir -p "$OUTPUT_DIR"
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { mkdir, writeFile } from "node:fs/promises";
+          import {
+            createSundayAfterMidnightVoice,
+            SUNDAY_AFTER_MIDNIGHT_DESIGN,
+          } from "./packages/voice/src/elevenlabs-design.ts";
+
+          const outDir = process.env.OUTPUT_DIR;
+          const apiKey = process.env.ELEVENLABS_API_KEY;
+          if (!outDir || !apiKey) throw new Error("required environment missing");
+          await mkdir(outDir, { recursive: true });
+
+          const selected = {
+            candidate: "D1",
+            generatedVoiceId: "j9nOYxfwt3sxAi32BnNI",
+            sourceDesignRequestHash: "b322cfdba80af75eec24ce4798b4de6bf0941b0c4ff7e2c644564828f25fa76b",
+            sourceDesignRunId: 32251130820,
+            humanSelection: "D1",
+          };
+
+          const approval = {
+            approved: true,
+            approvedBy: "Nic Albertson / Human Authority",
+            approvalId: "BLAIZE-G2-D1-SELECTION-2026-08-19",
+          };
+
+          const persisted = await createSundayAfterMidnightVoice(
+            selected.generatedVoiceId,
+            approval,
+          );
+
+          const modes = [
+            {
+              id: "SUNDAY_TALK",
+              filename: "SUNDAY_AFTER_MIDNIGHT_D1_SUNDAY_TALK.mp3",
+              text: "I bought the jacket because it looked responsible. That was the first mistake. The second was assuming anybody in the room knew what they were doing.",
+              settings: { stability: 0.58, similarity_boost: 0.82, style: 0.10, use_speaker_boost: true, speed: 0.92 },
+            },
+            {
+              id: "BLAIZE_MODE",
+              filename: "SUNDAY_AFTER_MIDNIGHT_D1_BLAIZE_MODE.mp3",
+              text: "Card declined. Camera flashed. I smiled anyway. Bad timing looks expensive when the outfit is right, so keep the receipt and act surprised.",
+              settings: { stability: 0.42, similarity_boost: 0.84, style: 0.28, use_speaker_boost: true, speed: 1.08 },
+            },
+            {
+              id: "VELVET",
+              filename: "SUNDAY_AFTER_MIDNIGHT_D1_VELVET.mp3",
+              text: "Stay a little longer. The room is almost beautiful when nobody says what they mean. I can make the silence look good if you can leave it alone.",
+              settings: { stability: 0.50, similarity_boost: 0.86, style: 0.22, use_speaker_boost: true, speed: 0.86 },
+            },
+            {
+              id: "ZERO_STATIC",
+              filename: "SUNDAY_AFTER_MIDNIGHT_D1_ZERO_STATIC.mp3",
+              text: "I keep making jokes because the truth arrives too early. Some nights I can hear the room go quiet before I even say it. I wish that bothered me less.",
+              settings: { stability: 0.68, similarity_boost: 0.88, style: 0.04, use_speaker_boost: true, speed: 0.78 },
+            },
+          ];
+
+          const renderReceipts = [];
+          for (const mode of modes) {
+            const response = await fetch(
+              `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(persisted.voiceId)}?output_format=mp3_44100_128`,
+              {
+                method: "POST",
+                headers: {
+                  "content-type": "application/json",
+                  "xi-api-key": apiKey,
+                },
+                body: JSON.stringify({
+                  text: mode.text,
+                  model_id: "eleven_multilingual_v2",
+                  voice_settings: mode.settings,
+                }),
+              },
+            );
+            if (!response.ok) {
+              throw new Error(`TTS_${mode.id}_FAILED_${response.status}`);
+            }
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            await writeFile(`${outDir}/${mode.filename}`, bytes);
+            renderReceipts.push({
+              mode: mode.id,
+              filename: mode.filename,
+              text: mode.text,
+              settings: mode.settings,
+              modelId: "eleven_multilingual_v2",
+              outputFormat: "mp3_44100_128",
+              sizeBytes: bytes.byteLength,
+            });
+          }
+
+          const receipt = {
+            identityId: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceIdentityId,
+            canonicalName: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceName,
+            state: "D1_PERSISTED / G2_MODE_PROXIES_RENDERED / NOT_G2_LOCKED",
+            selected,
+            approval,
+            persisted,
+            renderReceipts,
+            constraints: {
+              g2Locked: false,
+              singingValidated: false,
+              productionScalingAuthorized: false,
+            },
+          };
+          await writeFile(`${outDir}/receipt.json`, `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+
+      - name: Upload private D1 G2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunday-after-midnight-d1-g2-proxies
+          path: artifacts/voice-d1-g2
+          if-no-files-found: error
+          retention-days: 7
