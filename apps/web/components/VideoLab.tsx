@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clipboard, Download, ExternalLink, RefreshCw, Sparkles, Subtitles } from "lucide-react";
-import { MUTATION_ACTIONS } from "@/lib/video-view";
+import { executionPayloadFromRunDetail, MUTATION_ACTIONS } from "@/lib/video-view";
 import { VideoRunCard, type VideoRunSummary } from "./VideoRunCard";
 
 type CaptionAsset = {
@@ -129,6 +129,7 @@ export function VideoLab() {
     const data = await response.json();
     const run = data.run as VideoRunDetail;
     setDetail(run);
+    setExecution(executionPayloadFromRunDetail(run));
     setCaptions((data.captions ?? []) as CaptionAsset[]);
     setTaskId(run.externalTaskId ?? "");
     setResultStatus(run.externalStatus ?? "completed");
@@ -148,6 +149,7 @@ export function VideoLab() {
   useEffect(() => {
     if (!selectedId) {
       setDetail(null);
+      setExecution(null);
       setCaptions([]);
       return;
     }
@@ -389,7 +391,7 @@ export function VideoLab() {
               </button>
             </div>
           ) : (
-            <p className="mt-5 text-[11px] text-ash/35">Prepare a root or mutation run to expose its exact Wisebase payload.</p>
+            <p className="mt-5 text-[11px] text-ash/35">Prepare or select a run to expose its exact Wisebase payload.</p>
           )}
         </div>
       </section>
@@ -400,7 +402,7 @@ export function VideoLab() {
             <div><p className="section-label">Run ledger</p><h2 className="mt-1 text-[15px] font-medium text-bone">Immutable versions</h2></div>
             <button onClick={() => refreshRuns().catch(() => undefined)} className="p-2 text-ash/45 hover:text-bone" aria-label="Refresh runs"><RefreshCw className="h-4 w-4" /></button>
           </div>
-          {runs.map(run => <VideoRunCard key={run.id} run={run} selected={selectedId === run.id} onSelect={() => { setSelectedId(run.id); setExecution(null); }} />)}
+          {runs.map(run => <VideoRunCard key={run.id} run={run} selected={selectedId === run.id} onSelect={() => setSelectedId(run.id)} />)}
           {!runs.length && <div className="rounded-2xl border border-slate-800 p-6 text-center text-[12px] text-ash/40">No video runs yet.</div>}
         </div>
 
