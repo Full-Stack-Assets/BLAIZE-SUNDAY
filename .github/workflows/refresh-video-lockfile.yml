@@ -1,0 +1,38 @@
+name: Refresh Video Factory lockfile
+
+on:
+  push:
+    branches: [agent/video-factory-wisebase-v0.2a]
+    paths:
+      - ".github/lockfile-refresh-trigger"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/video-factory-wisebase-v0.2a
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Refresh deterministic workspace lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit lockfile and remove helper
+        shell: bash
+        run: |
+          rm -f .github/workflows/refresh-video-lockfile.yml .github/lockfile-refresh-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml .github/workflows/refresh-video-lockfile.yml .github/lockfile-refresh-trigger
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: refresh lockfile after main reconciliation"
+          git push origin HEAD:agent/video-factory-wisebase-v0.2a
