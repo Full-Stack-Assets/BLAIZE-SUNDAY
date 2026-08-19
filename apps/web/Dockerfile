@@ -45,7 +45,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN apk add --no-cache openssl
+# Prisma needs OpenSSL; video QC needs the ffprobe binary provided by ffmpeg.
+RUN apk add --no-cache openssl ffmpeg
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
