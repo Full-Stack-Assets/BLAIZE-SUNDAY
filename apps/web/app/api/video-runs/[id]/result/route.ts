@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiError, readJsonObject, requiredString } from "@/lib/api";
-import { videoRunService } from "@/lib/video-service.server";
+import {
+  videoRunRepository,
+  videoRunService
+} from "@/lib/video-service.server";
 
 export async function POST(
   request: Request,
@@ -8,6 +11,10 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params;
+    const existing = await videoRunRepository.get(id);
+    if (!existing) throw new Error("VIDEO_RUN_NOT_FOUND");
+    if (!existing.externalTaskId) throw new Error("EXTERNAL_TASK_RECEIPT_REQUIRED");
+
     const body = await readJsonObject(request);
     const run = await videoRunService.recordExternalResult(id, {
       status: requiredString(body, "externalStatus"),
