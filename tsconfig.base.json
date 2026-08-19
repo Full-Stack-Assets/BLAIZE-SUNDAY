@@ -22,6 +22,7 @@
       "@songforge/release": ["packages/release/src/index.ts"],
       "@songforge/shared": ["packages/shared/src/index.ts"],
       "@songforge/storage": ["packages/storage/src/index.ts"],
+      "@songforge/video": ["packages/video/src/index.ts"],
       "@songforge/voice": ["packages/voice/src/index.ts"]
     }
   }
