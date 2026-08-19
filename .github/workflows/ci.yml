@@ -28,6 +28,8 @@ jobs:
     name: Typecheck · Test · Build
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
 
     steps:
       - name: Checkout
@@ -40,18 +42,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          # No cache: pnpm until pnpm-lock.yaml is committed
+          cache: pnpm
 
       - name: Install
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
 
       - name: Typecheck
         run: pnpm typecheck
-        continue-on-error: true
 
       - name: Test
         run: pnpm test
-        continue-on-error: true
 
       - name: Build web
         run: pnpm --filter @songforge/web build

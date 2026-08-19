@@ -10,13 +10,17 @@ import {
   Radio,
   Settings,
   Music2,
+  FolderKanban,
+  Sparkles,
 } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Lab", icon: PenLine },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/pipeline", label: "Pipeline", icon: Layers },
   { href: "/approvals", label: "Approvals", icon: CheckCircle2 },
   { href: "/releases", label: "Releases", icon: Radio },
+  { href: "/grow", label: "Grow", icon: Sparkles },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

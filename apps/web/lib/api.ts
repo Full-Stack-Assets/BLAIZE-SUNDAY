@@ -63,7 +63,7 @@ export function requiredString(
 }
 
 export function apiError(error: unknown) {
-  const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+  const code = error instanceof ApiRequestError ? error.code : error instanceof Error ? error.message : "UNKNOWN_ERROR";
   const status = error instanceof ApiRequestError
     ? error.status
     : ["RELEASE_NOT_FOUND", "APPROVAL_NOT_FOUND", "ACTION_PACKAGE_NOT_FOUND"].includes(code)

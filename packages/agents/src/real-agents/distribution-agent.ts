@@ -1,7 +1,7 @@
 import {
   buildDistributionPayload,
   type ReleasePreparationContext
-} from "../../../release/src/payloads.ts";
+} from "@songforge/release";
 
 export class DistributionAgent {
   readonly id = "distribution_agent";

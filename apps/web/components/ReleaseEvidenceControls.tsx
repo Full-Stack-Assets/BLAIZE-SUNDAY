@@ -43,7 +43,7 @@ export function ReleaseEvidenceControls({
       const response = await fetch(`/api/releases/${releaseId}/${operation.endpoint}`, {
         method: "POST",
         headers: {
-          ...(status === "PREPARED" ? {} : { Authorization: `Bearer ${token}` }),
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -74,7 +74,7 @@ export function ReleaseEvidenceControls({
 
   const waitingWithoutApproval =
     status === "AWAITING_AUTHORIZATION" && (!actionPackageId || !approvedApprovalId);
-  const credentialsReady = status === "PREPARED" || Boolean(actor.trim() && token.trim());
+  const credentialsReady = Boolean(actor.trim() && token.trim());
   const confirmationReady = status === "PREPARED" || Boolean(confirmation.trim());
   const extraReady =
     status === "ACCEPTED" ? Boolean(scheduleDate) : status === "SCHEDULED" ? Boolean(platformUrl.trim()) : true;

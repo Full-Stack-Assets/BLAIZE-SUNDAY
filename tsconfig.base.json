@@ -10,19 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@songforge/agents": ["packages/agents/src/index.ts"],
-      "@songforge/canon": ["packages/canon/src/index.ts"],
-      "@songforge/database": ["packages/database/src/index.ts"],
-      "@songforge/llm": ["packages/llm/src/index.ts"],
-      "@songforge/release": ["packages/release/src/index.ts"],
-      "@songforge/shared": ["packages/shared/src/index.ts"],
-      "@songforge/storage": ["packages/storage/src/index.ts"],
-      "@songforge/voice": ["packages/voice/src/index.ts"]
-    }
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }
