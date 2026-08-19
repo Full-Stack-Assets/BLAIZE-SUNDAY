@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError, readJsonObject, requiredString } from "@/lib/api";
+import { isTrustedVideoMediaUrl } from "@/lib/video-media-url";
 import {
   videoRunRepository,
   videoRunService
@@ -16,10 +17,15 @@ export async function POST(
     if (!existing.externalTaskId) throw new Error("EXTERNAL_TASK_RECEIPT_REQUIRED");
 
     const body = await readJsonObject(request);
+    const videoUrl =
+      typeof body.videoUrl === "string" ? body.videoUrl.trim() || null : null;
+    if (videoUrl && !isTrustedVideoMediaUrl(videoUrl)) {
+      throw new Error("INVALID_VIDEO_MEDIA_URL");
+    }
+
     const run = await videoRunService.recordExternalResult(id, {
       status: requiredString(body, "externalStatus"),
-      videoUrl:
-        typeof body.videoUrl === "string" ? body.videoUrl.trim() || null : null,
+      videoUrl,
       metrics: body.metrics ?? null,
       error: body.error ?? null
     });
