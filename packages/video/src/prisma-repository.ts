@@ -25,6 +25,40 @@ function toIso(value: Date | string | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : value;
 }
 
+function errorTarget(error: unknown): string[] {
+  if (!error || typeof error !== "object" || Array.isArray(error)) return [];
+  const meta = (error as { meta?: unknown }).meta;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
+  const target = (meta as { target?: unknown }).target;
+  if (Array.isArray(target)) return target.map(String);
+  if (typeof target === "string") return [target];
+  return [];
+}
+
+export function translatePrismaVideoError(error: unknown): Error {
+  if (!error || typeof error !== "object" || Array.isArray(error)) {
+    return error instanceof Error ? error : new Error("VIDEO_PERSISTENCE_ERROR");
+  }
+
+  const code = (error as { code?: unknown }).code;
+  if (code !== "P2002") {
+    return error instanceof Error ? error : new Error("VIDEO_PERSISTENCE_ERROR");
+  }
+
+  const target = new Set(errorTarget(error));
+  if (target.has("externalTaskId")) {
+    return new Error("EXTERNAL_TASK_RECEIPT_CONFLICT");
+  }
+  if (target.has("lineageKey") && target.has("version")) {
+    return new Error("VIDEO_VERSION_CONFLICT");
+  }
+  if (target.has("runId") && target.has("version") && target.has("format")) {
+    return new Error("CAPTION_VERSION_ALREADY_EXISTS");
+  }
+  if (target.has("id")) return new Error("VIDEO_RUN_ALREADY_EXISTS");
+  return new Error("VIDEO_PERSISTENCE_CONFLICT");
+}
+
 function mapRun(row: any): VideoRunRecord {
   return {
     id: row.id,
@@ -97,40 +131,44 @@ function captionData(caption: CaptionRecord) {
 
 export class PrismaVideoRunRepository implements VideoRunRepository {
   async create(run: VideoRunRecord): Promise<VideoRunRecord> {
-    const row = await prisma.videoGenerationRun.create({
-      data: {
-        id: run.id,
-        lineageKey: run.lineageKey,
-        version: run.version,
-        parentRunId: run.parentRunId,
-        title: run.title,
-        topic: run.topic,
-        provider: run.provider,
-        connectorMode: run.connectorMode,
-        mutation: run.mutation,
-        brief: json(run.brief),
-        briefHash: run.briefHash,
-        compiledConcept: run.compiledConcept,
-        compiledExplanation: run.compiledExplanation,
-        promptHash: run.promptHash,
-        targetDurationSeconds: run.targetDurationSeconds,
-        durationTolerancePercent: run.durationTolerancePercent,
-        status: run.status,
-        externalTaskId: run.externalTaskId,
-        externalStatus: run.externalStatus,
-        videoUrl: run.videoUrl,
-        providerMetrics: nullableJson(run.providerMetrics),
-        providerError: nullableJson(run.providerError),
-        durationSeconds: run.durationSeconds,
-        width: run.width,
-        height: run.height,
-        fps: run.fps,
-        captionStatus: run.captionStatus,
-        qc: nullableJson(run.qc),
-        completedAt: run.completedAt ? new Date(run.completedAt) : null
-      }
-    });
-    return mapRun(row);
+    try {
+      const row = await prisma.videoGenerationRun.create({
+        data: {
+          id: run.id,
+          lineageKey: run.lineageKey,
+          version: run.version,
+          parentRunId: run.parentRunId,
+          title: run.title,
+          topic: run.topic,
+          provider: run.provider,
+          connectorMode: run.connectorMode,
+          mutation: run.mutation,
+          brief: json(run.brief),
+          briefHash: run.briefHash,
+          compiledConcept: run.compiledConcept,
+          compiledExplanation: run.compiledExplanation,
+          promptHash: run.promptHash,
+          targetDurationSeconds: run.targetDurationSeconds,
+          durationTolerancePercent: run.durationTolerancePercent,
+          status: run.status,
+          externalTaskId: run.externalTaskId,
+          externalStatus: run.externalStatus,
+          videoUrl: run.videoUrl,
+          providerMetrics: nullableJson(run.providerMetrics),
+          providerError: nullableJson(run.providerError),
+          durationSeconds: run.durationSeconds,
+          width: run.width,
+          height: run.height,
+          fps: run.fps,
+          captionStatus: run.captionStatus,
+          qc: nullableJson(run.qc),
+          completedAt: run.completedAt ? new Date(run.completedAt) : null
+        }
+      });
+      return mapRun(row);
+    } catch (error) {
+      throw translatePrismaVideoError(error);
+    }
   }
 
   async get(id: string): Promise<VideoRunRecord | null> {
@@ -161,29 +199,33 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
     const existing = await this.get(id);
     if (!existing) throw new Error("VIDEO_RUN_NOT_FOUND");
 
-    const row = await prisma.videoGenerationRun.update({
-      where: { id },
-      data: {
-        status: patch.status,
-        externalTaskId: patch.externalTaskId,
-        externalStatus: patch.externalStatus,
-        videoUrl: patch.videoUrl,
-        providerMetrics: nullableJson(patch.providerMetrics),
-        providerError: nullableJson(patch.providerError),
-        durationSeconds: patch.durationSeconds,
-        width: patch.width,
-        height: patch.height,
-        fps: patch.fps,
-        captionStatus: patch.captionStatus,
-        completedAt:
-          patch.completedAt === undefined
-            ? undefined
-            : patch.completedAt
-              ? new Date(patch.completedAt)
-              : null
-      }
-    });
-    return mapRun(row);
+    try {
+      const row = await prisma.videoGenerationRun.update({
+        where: { id },
+        data: {
+          status: patch.status,
+          externalTaskId: patch.externalTaskId,
+          externalStatus: patch.externalStatus,
+          videoUrl: patch.videoUrl,
+          providerMetrics: nullableJson(patch.providerMetrics),
+          providerError: nullableJson(patch.providerError),
+          durationSeconds: patch.durationSeconds,
+          width: patch.width,
+          height: patch.height,
+          fps: patch.fps,
+          captionStatus: patch.captionStatus,
+          completedAt:
+            patch.completedAt === undefined
+              ? undefined
+              : patch.completedAt
+                ? new Date(patch.completedAt)
+                : null
+        }
+      });
+      return mapRun(row);
+    } catch (error) {
+      throw translatePrismaVideoError(error);
+    }
   }
 
   async attachCaption(caption: CaptionRecord): Promise<CaptionRecord> {
@@ -194,12 +236,16 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
 
   async attachCaptions(captions: CaptionRecord[]): Promise<CaptionRecord[]> {
     if (!captions.length) return [];
-    const rows = await prisma.$transaction(
-      captions.map(caption =>
-        prisma.videoCaptionAsset.create({ data: captionData(caption) })
-      )
-    );
-    return rows.map(mapCaption);
+    try {
+      const rows = await prisma.$transaction(
+        captions.map(caption =>
+          prisma.videoCaptionAsset.create({ data: captionData(caption) })
+        )
+      );
+      return rows.map(mapCaption);
+    } catch (error) {
+      throw translatePrismaVideoError(error);
+    }
   }
 
   async listCaptions(runId: string): Promise<CaptionRecord[]> {
