@@ -46,7 +46,12 @@ test("requires at least 12 independent raters", () => {
   const result = evaluateG2VoiceRecognition({
     selectedCandidate: "B3",
     blindKey: key,
-    responses: responses(11, ["BS-G2-01", "BS-G2-04", "BS-G2-05", "BS-G2-11"]),
+    responses: responses(11, [
+      "BS-G2-01",
+      "BS-G2-04",
+      "BS-G2-05",
+      "BS-G2-11",
+    ]),
     prerequisites: allPrerequisites,
   });
 
@@ -59,7 +64,12 @@ test("passes recognition when all 12 raters identify B3 across all four modes", 
   const result = evaluateG2VoiceRecognition({
     selectedCandidate: "B3",
     blindKey: key,
-    responses: responses(12, ["BS-G2-01", "BS-G2-04", "BS-G2-05", "BS-G2-11"]),
+    responses: responses(12, [
+      "BS-G2-01",
+      "BS-G2-04",
+      "BS-G2-05",
+      "BS-G2-11",
+    ]),
     prerequisites: allPrerequisites,
   });
 
@@ -70,16 +80,24 @@ test("passes recognition when all 12 raters identify B3 across all four modes", 
 });
 
 test("fails when one mode-pair category falls below 60% even if aggregate exceeds 70%", () => {
-  const full = responses(7, ["BS-G2-01", "BS-G2-04", "BS-G2-05", "BS-G2-11"]);
-  const splitVelvet = Array.from({ length: 5 }, (_, index) => ({
-    raterId: `split-rater-${index + 1}`,
-    groups: [
-      ["BS-G2-01", "BS-G2-04", "BS-G2-11"],
-      ["BS-G2-05"],
-      ["BS-G2-02", "BS-G2-03", "BS-G2-07", "BS-G2-12"],
-      ["BS-G2-06", "BS-G2-08", "BS-G2-09", "BS-G2-10"],
-    ],
-  }));
+  const full = responses(7, [
+    "BS-G2-01",
+    "BS-G2-04",
+    "BS-G2-05",
+    "BS-G2-11",
+  ]);
+  const splitVelvet: G2RaterResponse[] = Array.from(
+    { length: 5 },
+    (_, index) => ({
+      raterId: `split-rater-${index + 1}`,
+      groups: [
+        ["BS-G2-01", "BS-G2-04", "BS-G2-11"],
+        ["BS-G2-05"],
+        ["BS-G2-02", "BS-G2-03", "BS-G2-07", "BS-G2-12"],
+        ["BS-G2-06", "BS-G2-08", "BS-G2-09", "BS-G2-10"],
+      ],
+    }),
+  );
 
   const result = evaluateG2VoiceRecognition({
     selectedCandidate: "B3",
@@ -98,7 +116,12 @@ test("hard prerequisites prevent lock even with perfect recognition", () => {
   const result = evaluateG2VoiceRecognition({
     selectedCandidate: "B3",
     blindKey: key,
-    responses: responses(12, ["BS-G2-01", "BS-G2-04", "BS-G2-05", "BS-G2-11"]),
+    responses: responses(12, [
+      "BS-G2-01",
+      "BS-G2-04",
+      "BS-G2-05",
+      "BS-G2-11",
+    ]),
     prerequisites: {
       ...allPrerequisites,
       loudnessNormalized: false,

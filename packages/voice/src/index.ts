@@ -1,3 +1,5 @@
+export * from "./elevenlabs-design.ts";
+
 export type VoiceStatus = "UNCONFIGURED" | "UNVERIFIED" | "ACTIVE";
 
 export interface CanonicalVoice {

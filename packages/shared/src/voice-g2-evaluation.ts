@@ -142,9 +142,7 @@ export function evaluateG2VoiceRecognition(input: {
       const recognizedBy = responses.filter((response) =>
         groupedTogether(response, left.blindId, right.blindId),
       ).length;
-      const accuracy = responses.length
-        ? recognizedBy / responses.length
-        : 0;
+      const accuracy = responses.length ? recognizedBy / responses.length : 0;
 
       pairResults.push({
         leftMode,
