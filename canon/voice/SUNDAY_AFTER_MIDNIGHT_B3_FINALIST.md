@@ -135,7 +135,32 @@ The line intentionally stresses sibilants, conversational pacing, dry humor, and
 
 ---
 
-## 6. Singing-Direction Evidence
+## 6. Exact-Voice Four-Mode Recognition Set
+
+On 2026-08-19, the exact B3 provider voice ID was rendered four times using the canonical audition script from `BLAIZE_SUNDAY_FULL_MASTER_v4.md`:
+
+> Card declined, fit approved.  
+> I look certain, feel confused.  
+> Bad decisions, great outfit.  
+> I got good at looking certain  
+> long before I felt okay.
+
+All four renders use HeyGen voice ID `10863794b2454eaa8781f377939d6f14`. The current Starfish speech endpoint exposes limited performance control, so these are **identity-continuity proxies**, not full artistic-mode masters.
+
+| Mode proxy | Speed | Duration | Evidence URL |
+|---|---:|---:|---|
+| SUNDAY TALK | 0.92× | 11.10 s | `https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=33f59716-c455-40f6-b4f5-e186d982d70e.wav` |
+| BLAIZE MODE | 1.08× | 10.08 s | `https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=5c1c9268-962a-45e3-b630-d2b9a86e6fca.wav` |
+| VELVET | 0.86× | 14.16 s | `https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=1ded3221-37e9-4034-8ee2-82c3f3524357.wav` |
+| ZERO STATIC | 0.78× | 14.84 s | `https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=0ea954d8-d311-40ef-8923-c2a7cf5c26a0.wav` |
+
+**Evidence classification:** `EXACT_IDENTITY_RENDERED / MODE_EXPRESSIVITY_PARTIAL`.
+
+The set proves that the same exact provider voice can reproduce the canonical audition text consistently over a useful pacing range. It does not yet prove the full artistic separation required for the four performance modes, particularly melodic VELVET and exposed ZERO STATIC.
+
+---
+
+## 7. Singing-Direction Evidence
 
 A separate musical-generation test was produced to validate the **singing behavior**, not the exact B3 timbre.
 
@@ -163,7 +188,7 @@ This test demonstrates a promising direction for melody, range, phrasing, and em
 
 ---
 
-## 7. Provider / Rights Constraints Discovered
+## 8. Provider / Rights Constraints Discovered
 
 ### Fal
 
@@ -181,7 +206,7 @@ A connected ElevenLabs STS route is available through Picsart and can preserve t
 
 ---
 
-## 8. G2 Remaining Conditions
+## 9. G2 Remaining Conditions
 
 B3 remains `NOT_LOCKED` until the required G2 evidence is complete.
 
@@ -191,7 +216,8 @@ Required before `LOCKED`:
 - [x] One exact provider voice ID recorded.
 - [x] Core timbral direction documented.
 - [x] Singing behavior direction explored.
-- [ ] Four-mode B3 audition set generated from the exact same B3 voice.
+- [x] Four exact-identity B3 audition renders generated from the same provider voice ID.
+- [ ] Full expressive four-mode renders produced with mode-appropriate control, especially melodic VELVET and exposed ZERO STATIC.
 - [ ] Randomized, blinded, loudness-normalized recognition test completed.
 - [ ] At least 12 valid independent raters.
 - [ ] Aggregate same-performer recognition ≥70%.
@@ -203,7 +229,7 @@ Required before `LOCKED`:
 
 ---
 
-## 9. Persistence Architecture
+## 10. Persistence Architecture
 
 The production system should refer to the voice through an internal canonical alias rather than hard-coding a provider ID throughout the application.
 
@@ -233,12 +259,12 @@ Consumers should resolve `blaize-sunday/sunday-after-midnight` through the voice
 
 ---
 
-## 10. Exact Next Work
+## 11. Exact Next Work
 
-1. Render B3 in all four canonical modes using the exact HeyGen voice ID.
-2. Add singing-specific test material covering chest voice, mixed register, sustained vowel, short falsetto extension, and rhythm-to-melody transitions.
+1. Preserve and register the four exact-identity B3 render URLs as G2 evidence.
+2. Produce singing-specific test material covering chest voice, mixed register, sustained vowel, short falsetto extension, and rhythm-to-melody transitions once a singing-capable identity-preserving route is funded and rights-cleared.
 3. Establish a rights-clean route to a persistent proprietary or contractually stable voice before public-release dependence.
-4. Run the formal G2 identity-recognition evaluation.
+4. Run the formal G2 identity-recognition evaluation using the most expressive valid four-mode set.
 5. If G2 passes, create the immutable `SUNDAY_AFTER_MIDNIGHT_LOCKED_v1` asset record and only then allow downstream release workflows to treat the voice as production-ready.
 
 Until then, **B3 is the preferred finalist and audible reference, not the locked production asset.**
