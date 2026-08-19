@@ -110,6 +110,7 @@ test("provider completion never promotes a run directly to verified", async () =
   const repo = new InMemoryVideoRunRepository();
   const service = new VideoRunService(repo);
   const root = await service.createRoot(briefInput);
+  await service.attachExternalTask(root.id, "task-regression-completed");
   const completed = await service.recordExternalResult(root.id, {
     status: "completed",
     videoUrl: "https://example.test/video.mp4",
