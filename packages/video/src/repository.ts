@@ -81,6 +81,7 @@ export interface VideoRunRepository {
   listLineage(lineageKey: string): Promise<VideoRunRecord[]>;
   updateExecution(id: string, patch: ExecutionPatch): Promise<VideoRunRecord>;
   attachCaption(caption: CaptionRecord): Promise<CaptionRecord>;
+  attachCaptions(captions: CaptionRecord[]): Promise<CaptionRecord[]>;
   listCaptions(runId: string): Promise<CaptionRecord[]>;
   saveQc(
     id: string,
@@ -95,6 +96,10 @@ function cloneRun(run: VideoRunRecord): VideoRunRecord {
 
 function cloneCaption(caption: CaptionRecord): CaptionRecord {
   return structuredClone(caption);
+}
+
+function captionKey(caption: Pick<CaptionRecord, "runId" | "version" | "format">) {
+  return `${caption.runId}:${caption.version}:${caption.format}`;
 }
 
 export class InMemoryVideoRunRepository implements VideoRunRepository {
@@ -142,20 +147,34 @@ export class InMemoryVideoRunRepository implements VideoRunRepository {
   }
 
   async attachCaption(caption: CaptionRecord): Promise<CaptionRecord> {
-    if (!this.runs.has(caption.runId)) throw new Error("VIDEO_RUN_NOT_FOUND");
-    const duplicate = this.captions.some(
-      item =>
-        item.runId === caption.runId &&
-        item.version === caption.version &&
-        item.format === caption.format
+    const [stored] = await this.attachCaptions([caption]);
+    if (!stored) throw new Error("CAPTION_BATCH_EMPTY");
+    return stored;
+  }
+
+  async attachCaptions(captions: CaptionRecord[]): Promise<CaptionRecord[]> {
+    if (!captions.length) return [];
+
+    const incomingKeys = new Set<string>();
+    for (const caption of captions) {
+      if (!this.runs.has(caption.runId)) throw new Error("VIDEO_RUN_NOT_FOUND");
+      const key = captionKey(caption);
+      if (incomingKeys.has(key)) throw new Error("CAPTION_VERSION_ALREADY_EXISTS");
+      incomingKeys.add(key);
+      if (this.captions.some(item => captionKey(item) === key)) {
+        throw new Error("CAPTION_VERSION_ALREADY_EXISTS");
+      }
+    }
+
+    const now = new Date().toISOString();
+    const stored = captions.map(caption =>
+      cloneCaption({
+        ...caption,
+        createdAt: caption.createdAt ?? now
+      })
     );
-    if (duplicate) throw new Error("CAPTION_VERSION_ALREADY_EXISTS");
-    const stored = cloneCaption({
-      ...caption,
-      createdAt: caption.createdAt ?? new Date().toISOString()
-    });
-    this.captions.push(stored);
-    return cloneCaption(stored);
+    this.captions.push(...stored);
+    return stored.map(cloneCaption);
   }
 
   async listCaptions(runId: string): Promise<CaptionRecord[]> {
