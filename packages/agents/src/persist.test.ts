@@ -39,6 +39,14 @@ test("persist suite runs against Postgres when DATABASE_URL is reachable", async
   assert.ok(first.workflow.projectId);
   assert.equal(first.workflow.status, "BLOCKED");
 
+  const concurrentKey = `concurrent-test-${Date.now()}`;
+  const [left, right] = await Promise.all([
+    executeCreateNextRelease({ actor: "test-left", idempotencyKey: concurrentKey }),
+    executeCreateNextRelease({ actor: "test-right", idempotencyKey: concurrentKey })
+  ]);
+  assert.equal(left.workflow.id, right.workflow.id);
+  assert.equal(Number(left.created) + Number(right.created), 1);
+
   const queueKey = `queue-test-${Date.now()}`;
   const reserved = await queueCreateNextRelease({ actor: "test", idempotencyKey: queueKey });
   assert.equal(reserved.created, true);
