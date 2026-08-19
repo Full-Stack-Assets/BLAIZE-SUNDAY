@@ -27,7 +27,7 @@ export interface VideoRunSummary {
   fps: number | null;
   captionStatus: string;
   providerMetrics: unknown | null;
-  qc: unknown | null;
+  qc: Record<string, unknown> | null;
   createdAt?: string;
 }
 
