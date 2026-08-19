@@ -84,3 +84,22 @@ jobs:
         run: |
           docker run --rm --entrypoint sh songforge-web-ci -c \
             'test -f /app/apps/web/server.js && command -v ffprobe'
+
+      - name: Smoke production container
+        run: |
+          cid=$(docker run -d --rm \
+            -e DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/songforge?schema=public \
+            -p 3000:3000 songforge-web-ci)
+          trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/video-lab >/dev/null; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ok" -ne 1 ]; then
+            docker logs "$cid"
+            exit 1
+          fi
