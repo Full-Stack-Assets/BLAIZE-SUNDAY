@@ -55,6 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect
     timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/songforge?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -63,6 +65,10 @@ jobs:
           node-version: 24
       - name: Install
         run: pnpm install --no-frozen-lockfile
+      - name: Prisma validate
+        run: pnpm db:validate
+      - name: Prisma generate
+        run: pnpm db:generate
       - name: Build
         run: pnpm --filter @songforge/web build
         env:
