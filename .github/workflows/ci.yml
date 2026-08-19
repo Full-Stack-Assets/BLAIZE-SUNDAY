@@ -47,6 +47,12 @@ jobs:
       - name: Install
         run: pnpm install --no-frozen-lockfile
 
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Git whitespace check
+        run: git diff --check
+
       - name: Prisma validate
         run: pnpm db:validate
 
