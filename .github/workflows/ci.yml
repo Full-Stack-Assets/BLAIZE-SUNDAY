@@ -28,6 +28,8 @@ jobs:
     name: Typecheck · Test · Build
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/songforge?schema=public
 
     steps:
       - name: Checkout
