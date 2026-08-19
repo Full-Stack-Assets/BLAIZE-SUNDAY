@@ -1,0 +1,77 @@
+name: One-shot ElevenLabs run harvester
+
+on:
+  push:
+    branches: [voice/elevenlabs-design-adapter]
+    paths:
+      - ".github/voice-design-harvest-trigger"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_SHA: c769a66865ecaa827a33dd65d304437fb189f27d
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: voice/elevenlabs-design-adapter
+      - name: Locate and wait for exact Voice Design run
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=""
+          for i in $(seq 1 30); do
+            run_id=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20" \
+              --jq '.workflow_runs[] | select(.name == "ElevenLabs Voice Design") | .id' | head -n 1 || true)
+            if [ -n "$run_id" ]; then break; fi
+            sleep 2
+          done
+          if [ -z "$run_id" ]; then
+            echo "Exact ElevenLabs Voice Design run not found" >&2
+            exit 1
+          fi
+
+          status=""
+          conclusion=""
+          for i in $(seq 1 120); do
+            status=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status')
+            conclusion=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.conclusion // ""')
+            if [ "$status" = "completed" ]; then break; fi
+            sleep 5
+          done
+          if [ "$status" != "completed" ]; then
+            echo "Voice Design run did not complete within harvest window" >&2
+            exit 1
+          fi
+
+          artifact_count=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '.total_count')
+          artifact_id=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+            --jq '.artifacts[] | select(.name == "sunday-after-midnight-elevenlabs-previews") | .id' | head -n 1 || true)
+
+          mkdir -p .github/receipts
+          cat > .github/receipts/elevenlabs-voice-design-last-run.json <<JSON
+          {
+            "run_id": $run_id,
+            "head_sha": "$TARGET_SHA",
+            "status": "$status",
+            "conclusion": "$conclusion",
+            "artifact_count": $artifact_count,
+            "preview_artifact_id": ${artifact_id:-null}
+          }
+          JSON
+
+      - name: Commit receipt and remove harvester
+        shell: bash
+        run: |
+          rm -f .github/workflows/harvest-elevenlabs-run.yml .github/voice-design-harvest-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: record ElevenLabs Voice Design run receipt"
+          git push origin HEAD:voice/elevenlabs-design-adapter
