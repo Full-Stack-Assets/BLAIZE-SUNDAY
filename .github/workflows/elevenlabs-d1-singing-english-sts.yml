@@ -5,7 +5,7 @@ on:
     branches:
       - voice/elevenlabs-design-adapter
     paths:
-      - "voice-d1-singing-english-trigger.txt"
+      - ".github/workflows/elevenlabs-d1-singing-english-sts.yml"
 
 permissions:
   contents: read
