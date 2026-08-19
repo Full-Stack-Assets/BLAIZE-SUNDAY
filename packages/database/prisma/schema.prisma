@@ -498,3 +498,93 @@ model RevenueEvent {
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
+
+enum VideoGenerationRunStatus {
+  PLANNED
+  AWAITING_EXTERNAL_EXECUTION
+  PENDING
+  COMPLETED
+  GENERATED
+  CAPTIONS_REQUIRED
+  QC_FAILED
+  NEEDS_REVISION
+  VERIFIED
+  FAILED
+}
+
+enum VideoGenerationMutation {
+  ROOT
+  REGENERATE
+  MORE_CINEMATIC
+  MORE_EXPLANATORY
+  SHORTER
+  LONGER
+}
+
+enum VideoCaptionSource {
+  PROVIDER_SIDECAR
+  LOCAL_ALIGNMENT
+  MANUAL_IMPORT
+}
+
+model VideoGenerationRun {
+  id                       String                   @id @default(uuid())
+  lineageKey               String
+  version                  Int
+  parentRunId              String?
+  title                    String
+  topic                    String
+  provider                 String                   @default("WISEBASE")
+  connectorMode            String                   @default("CONNECTOR_MEDIATED")
+  mutation                 VideoGenerationMutation @default(ROOT)
+  brief                    Json
+  briefHash                String
+  compiledConcept          String
+  compiledExplanation      String
+  promptHash               String
+  targetDurationSeconds    Int
+  durationTolerancePercent Float                    @default(15)
+  status                   VideoGenerationRunStatus @default(PLANNED)
+  externalTaskId           String?                  @unique
+  externalStatus           String?
+  videoUrl                 String?
+  providerMetrics          Json?
+  providerError            Json?
+  durationSeconds          Float?
+  width                    Int?
+  height                   Int?
+  fps                      Float?
+  captionStatus            String                   @default("MISSING")
+  qc                       Json?
+  createdAt                DateTime                 @default(now())
+  completedAt              DateTime?
+
+  parent   VideoGenerationRun?  @relation("VideoRunLineage", fields: [parentRunId], references: [id], onDelete: SetNull)
+  children VideoGenerationRun[] @relation("VideoRunLineage")
+  captions VideoCaptionAsset[]
+
+  @@unique([lineageKey, version])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model VideoCaptionAsset {
+  id              String             @id @default(uuid())
+  runId           String
+  version         Int
+  locale          String
+  source          VideoCaptionSource
+  format          String
+  content         String             @db.Text
+  contentHash     String
+  cueCount        Int
+  startSeconds    Float
+  endSeconds      Float
+  sourceMediaHash String?
+  createdAt       DateTime           @default(now())
+
+  run VideoGenerationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, version, format])
+  @@index([runId, createdAt])
+}
