@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@songforge/database";
 import type { VideoRunStatus } from "./domain.ts";
 import type {
@@ -6,6 +7,18 @@ import type {
   VideoRunRecord,
   VideoRunRepository
 } from "./repository.ts";
+
+function json(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
+
+function nullableJson(
+  value: unknown | null | undefined
+): Prisma.InputJsonValue | typeof Prisma.DbNull | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.DbNull;
+  return json(value);
+}
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -78,7 +91,7 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
         provider: run.provider,
         connectorMode: run.connectorMode,
         mutation: run.mutation,
-        brief: run.brief as object,
+        brief: json(run.brief),
         briefHash: run.briefHash,
         compiledConcept: run.compiledConcept,
         compiledExplanation: run.compiledExplanation,
@@ -89,14 +102,14 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
         externalTaskId: run.externalTaskId,
         externalStatus: run.externalStatus,
         videoUrl: run.videoUrl,
-        providerMetrics: run.providerMetrics as object | null,
-        providerError: run.providerError as object | null,
+        providerMetrics: nullableJson(run.providerMetrics),
+        providerError: nullableJson(run.providerError),
         durationSeconds: run.durationSeconds,
         width: run.width,
         height: run.height,
         fps: run.fps,
         captionStatus: run.captionStatus,
-        qc: run.qc as object | null,
+        qc: nullableJson(run.qc),
         completedAt: run.completedAt ? new Date(run.completedAt) : null
       }
     });
@@ -138,8 +151,8 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
         externalTaskId: patch.externalTaskId,
         externalStatus: patch.externalStatus,
         videoUrl: patch.videoUrl,
-        providerMetrics: patch.providerMetrics as object | null | undefined,
-        providerError: patch.providerError as object | null | undefined,
+        providerMetrics: nullableJson(patch.providerMetrics),
+        providerError: nullableJson(patch.providerError),
         durationSeconds: patch.durationSeconds,
         width: patch.width,
         height: patch.height,
@@ -193,7 +206,7 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
     if (!existing) throw new Error("VIDEO_RUN_NOT_FOUND");
     const row = await prisma.videoGenerationRun.update({
       where: { id },
-      data: { status, qc: qc as object }
+      data: { status, qc: json(qc) }
     });
     return mapRun(row);
   }
