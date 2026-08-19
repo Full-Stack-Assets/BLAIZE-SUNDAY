@@ -3,6 +3,7 @@
 #   docker build -f apps/web/Dockerfile -t songforge-web .
 
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
 
@@ -29,6 +30,8 @@ RUN test -f apps/web/components/SongLab.tsx \
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/songforge?schema=public
+RUN pnpm db:generate
 WORKDIR /app/apps/web
 RUN pnpm build
 
@@ -40,6 +43,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+RUN apk add --no-cache openssl
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
