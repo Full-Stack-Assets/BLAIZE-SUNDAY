@@ -66,7 +66,12 @@ export function apiError(error: unknown) {
   const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
   const status = error instanceof ApiRequestError
     ? error.status
-    : ["RELEASE_NOT_FOUND", "APPROVAL_NOT_FOUND", "ACTION_PACKAGE_NOT_FOUND"].includes(code)
+    : [
+          "RELEASE_NOT_FOUND",
+          "APPROVAL_NOT_FOUND",
+          "ACTION_PACKAGE_NOT_FOUND",
+          "VIDEO_RUN_NOT_FOUND"
+        ].includes(code)
       ? 404
       : [
           "APPROVAL_ALREADY_RESOLVED",
@@ -74,7 +79,9 @@ export function apiError(error: unknown) {
           "PAYLOAD_MISMATCH",
           "INVALID_RELEASE_TRANSITION",
           "SUBMISSION_NOT_AUTHORIZED",
-          "REVISION_EVIDENCE_REQUIRED"
+          "REVISION_EVIDENCE_REQUIRED",
+          "CAPTION_VERSION_ALREADY_EXISTS",
+          "VIDEO_RUN_ALREADY_EXISTS"
         ].includes(code)
         ? 409
         : [
@@ -83,8 +90,16 @@ export function apiError(error: unknown) {
             "VALID_SCHEDULE_DATE_REQUIRED",
             "PROVIDER_MISMATCH",
             "RELEASE_PACKAGE_INCOMPLETE",
-            "RELEASE_NOT_PREPARED"
-          ].includes(code)
+            "RELEASE_NOT_PREPARED",
+            "EXTERNAL_TASK_ID_REQUIRED",
+            "CAPTIONS_REQUIRED",
+            "TECHNICAL_METADATA_UNAVAILABLE",
+            "CAPTION_LOCALE_REQUIRED",
+            "EMPTY_CAPTION_TEXT",
+            "OVERLAPPING_CAPTIONS"
+          ].includes(code) ||
+          code.startsWith("INVALID_") ||
+          code.endsWith("_REQUIRED")
           ? 400
           : 500;
 
