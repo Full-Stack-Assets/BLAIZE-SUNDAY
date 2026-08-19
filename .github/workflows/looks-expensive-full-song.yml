@@ -1,0 +1,246 @@
+name: LOOKS EXPENSIVE Full Song Calibration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/looks-expensive-full-song.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  produce:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      TARGET_VOICE_ID: j9nOYxfwt3sxAi32BnNI
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify credential
+        shell: bash
+        run: test -n "$ELEVENLABS_API_KEY"
+
+      - name: Install audio tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install demucs
+          ffprobe -version | head -n 1
+          python -m demucs --help >/dev/null
+
+      - name: Build Music v2 composition plan
+        shell: bash
+        run: |
+          mkdir -p artifacts/looks-expensive
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          global_styles = [
+            "nocturnal alternative R&B",
+            "sleek electronic pop",
+            "88 BPM",
+            "F sharp minor",
+            "warm sub bass",
+            "glassy restrained synths",
+            "minimal punchy electronic drums",
+            "expensive but slightly strange production",
+            "intimate contemporary American male lead vocal",
+            "strongly rhotic modern American pronunciation",
+            "clean crisp sibilants with no lisp",
+            "dry deadpan confidence with precise vulnerability",
+            "close-mic low-mid masculine register",
+            "polished wide stereo production"
+          ]
+          global_negative = [
+            "British accent", "RP accent", "transatlantic accent", "theatrical diction",
+            "dentalized sibilants", "lisp", "crooner", "musical theatre", "vintage cabaret",
+            "country", "rock guitars", "EDM festival drop", "cheerful bubblegum pop",
+            "over-singing", "excessive vibrato", "melismatic runs"
+          ]
+
+          chunks = [
+            {
+              "text": "[Intro]\nCard declined.\nAgain?\nThat’s embarrassing.\nKeep the bag.",
+              "duration_ms": 12000,
+              "positive_styles": global_styles + ["spoken-sung deadpan opening", "card-reader decline sound integrated rhythmically", "sparse texture"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Verse 1]\nWalked in late like I own the lease\nBlack coat clean, little dirt on the sleeve\nEverybody looking, that’s regular\nI practiced being casual in the elevator\n\nChampagne face, convenience-store light\nWhole room thinks I’m having a night\nPhone on one percent, smile on ten\nI keep getting gorgeous at the worst possible time again\n\nDriver asked where I’m headed\nI said, ‘Somewhere expensive’\nHe said, ‘That’s not an address’\nFair",
+              "duration_ms": 39000,
+              "positive_styles": ["intimate conversational melodic verse", "low-mid American male vocal", "restrained syncopation", "sub bass enters gradually", "clean sibilants", "dry humor"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Pre-Chorus]\nEverything fits\nExcept the evening\nEverything works\nExcept the meaning\n\nYou said I looked good\nI heard you leaving",
+              "duration_ms": 17000,
+              "positive_styles": ["rising tension", "slightly wider harmonies", "vulnerable but controlled", "synth pulse building", "clean modern American diction"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Chorus]\nI look expensive\nI feel weird\nWhole room crystal clear\nI disappear\n\nTailored perfect\nTiming tragic\nIf confidence is mostly acting\nBaby, I’m fantastic\n\nI look expensive\nI feel weird\nSmile for the camera\nNothing to see here",
+              "duration_ms": 33000,
+              "positive_styles": ["hook-forward alternative R&B chorus", "clear memorable topline", "fuller electronic drums", "layered but restrained backing vocals", "modern American male vocal", "cool surface with emotional fracture"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Verse 2]\nHotel key died outside the suite\nSilk shirt open, socks on concrete\nTwo strangers passed, I gave them a nod\nLike getting locked out was part of the job\n\nYour name lit up\nI let it ring\nThat’s how I handle everything\n\nRead your message through the preview\nSo technically\nI never saw it\n\nThat’s growth\nDon’t laugh",
+              "duration_ms": 35000,
+              "positive_styles": ["minimal beat returns", "close dry vocal", "slightly more rhythmic phrasing", "deadpan delivery", "low-mid American male vocal"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Pre-Chorus]\nEverything shines\nWhen nobody touches it\nEverything hurts\nWhen somebody does\n\nYou asked what I wanted\nI changed the subject\nThen changed clubs",
+              "duration_ms": 18000,
+              "positive_styles": ["restrained emotional lift", "subtle vocal doubles", "building synth tension", "contemporary American pronunciation"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Chorus]\nI look expensive\nI feel weird\nWhole room crystal clear\nI disappear\n\nTailored perfect\nTiming tragic\nIf confidence is mostly acting\nBaby, I’m fantastic\n\nI look expensive\nI feel weird\nSmile for the camera\nNothing to see here",
+              "duration_ms": 33000,
+              "positive_styles": ["same recognizable chorus melody", "stronger low end", "additional glassy synth counterline", "clean lead vocal", "restrained backing layers"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Bridge]\nI got good at looking certain\nLong before I felt okay\nLearned exactly where to stand\nSo the light would hit my face\n\nYou knew me with the jacket off\nNo music, no arrivals\nThat’s probably why I miss you\nYou had access to the files\n\nAnd I hate that sentence\nBut it’s true",
+              "duration_ms": 35000,
+              "positive_styles": ["instrumentation strips back", "exposed intimate vocal", "nearly dry room", "emotional consequence without melodrama", "subtle suspended synth chords"],
+              "negative_styles": global_negative + ["big drums", "anthemic delivery"],
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Final Chorus]\nI look expensive\nI feel weird\nEverybody wants the picture\nNobody lives here\n\nBeautiful entrance\nEmergency exit\nI can make a breakdown\nLook photogenic\n\nI look expensive\nI feel weird\nIf you ask me how I’m doing\nBuy another round\n\nI’ll disappear",
+              "duration_ms": 36000,
+              "positive_styles": ["largest chorus but still elegant", "full electronic arrangement", "recognizable hook", "emotionally exposed final lines", "clean modern American male vocal"],
+              "negative_styles": global_negative,
+              "context_adherence": "high"
+            },
+            {
+              "text": "[Outro]\nCard approved.\nFinally.\nToo late.",
+              "duration_ms": 11000,
+              "positive_styles": ["music collapses to sparse synth and card-reader motif", "deadpan spoken-sung outro", "short dry ending"],
+              "negative_styles": global_negative + ["long fadeout"],
+              "context_adherence": "high"
+            }
+          ]
+
+          body = {
+            "composition_plan": {"chunks": chunks},
+            "model_id": "music_v2",
+            "respect_sections_durations": True,
+            "store_for_inpainting": True,
+            "sign_with_c2pa": False
+          }
+          Path('artifacts/looks-expensive/composition-request.json').write_text(json.dumps(body, indent=2))
+          print(sum(c['duration_ms'] for c in chunks))
+          PY
+
+      - name: Generate full guide song with Eleven Music v2
+        shell: bash
+        run: |
+          curl --fail-with-body --location \
+            -X POST "https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192" \
+            -H "xi-api-key: $ELEVENLABS_API_KEY" \
+            -H "content-type: application/json" \
+            --data-binary @artifacts/looks-expensive/composition-request.json \
+            -D artifacts/looks-expensive/music-response-headers.txt \
+            -o artifacts/looks-expensive/LOOKS_EXPENSIVE_GUIDE.mp3
+          test -s artifacts/looks-expensive/LOOKS_EXPENSIVE_GUIDE.mp3
+          ffprobe -v error -show_entries format=duration,size -of json artifacts/looks-expensive/LOOKS_EXPENSIVE_GUIDE.mp3 > artifacts/looks-expensive/guide-ffprobe.json
+
+      - name: Separate guide vocal and instrumental
+        shell: bash
+        run: |
+          python -m demucs --two-stems=vocals -n htdemucs --out artifacts/looks-expensive/separated artifacts/looks-expensive/LOOKS_EXPENSIVE_GUIDE.mp3
+          VOCALS="artifacts/looks-expensive/separated/htdemucs/LOOKS_EXPENSIVE_GUIDE/vocals.wav"
+          INST="artifacts/looks-expensive/separated/htdemucs/LOOKS_EXPENSIVE_GUIDE/no_vocals.wav"
+          test -s "$VOCALS"
+          test -s "$INST"
+          cp "$VOCALS" artifacts/looks-expensive/GUIDE_VOCALS.wav
+          cp "$INST" artifacts/looks-expensive/INSTRUMENTAL.wav
+
+      - name: Convert isolated guide vocal to D1 English STS
+        shell: bash
+        run: |
+          curl --fail-with-body --location \
+            -X POST "https://api.elevenlabs.io/v1/speech-to-speech/$TARGET_VOICE_ID?output_format=mp3_44100_192" \
+            -H "xi-api-key: $ELEVENLABS_API_KEY" \
+            -F "audio=@artifacts/looks-expensive/GUIDE_VOCALS.wav" \
+            -F "model_id=eleven_english_sts_v2" \
+            -o artifacts/looks-expensive/D1_LEAD_VOCAL.mp3
+          test -s artifacts/looks-expensive/D1_LEAD_VOCAL.mp3
+
+      - name: Mix D1 vocal over original instrumental
+        shell: bash
+        run: |
+          ffmpeg -y -hide_banner -loglevel error \
+            -i artifacts/looks-expensive/INSTRUMENTAL.wav \
+            -i artifacts/looks-expensive/D1_LEAD_VOCAL.mp3 \
+            -filter_complex "[0:a]volume=0.86[inst];[1:a]volume=1.08[voc];[inst][voc]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.95[mix]" \
+            -map "[mix]" -ar 44100 -ac 2 -b:a 192k \
+            artifacts/looks-expensive/LOOKS_EXPENSIVE_D1_FULL.mp3
+          test -s artifacts/looks-expensive/LOOKS_EXPENSIVE_D1_FULL.mp3
+
+      - name: Verify and bind production receipt
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, hashlib, subprocess
+          from pathlib import Path
+          root=Path('artifacts/looks-expensive')
+          names=['LOOKS_EXPENSIVE_GUIDE.mp3','GUIDE_VOCALS.wav','INSTRUMENTAL.wav','D1_LEAD_VOCAL.mp3','LOOKS_EXPENSIVE_D1_FULL.mp3']
+          def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+          def duration(p):
+              return float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(p)],text=True).strip())
+          files={}
+          for name in names:
+              p=root/name
+              files[name]={'sha256':sha(p),'bytes':p.stat().st_size,'durationSeconds':duration(p)}
+          final_d=files['LOOKS_EXPENSIVE_D1_FULL.mp3']['durationSeconds']
+          guide_d=files['LOOKS_EXPENSIVE_GUIDE.mp3']['durationSeconds']
+          ratio=final_d/guide_d if guide_d else 0
+          receipt={
+            'artist':'BLAIZE SUNDAY',
+            'song':'LOOKS EXPENSIVE',
+            'era':'LOOKS EXPENSIVE, FEELS WEIRD',
+            'lyricsAuthority':'USER_AUTHORIZED_TEN_SONG_SLATE_2026_08_19',
+            'musicProvider':'elevenlabs',
+            'musicModel':'music_v2',
+            'stemSeparator':'demucs/htdemucs',
+            'voiceProvider':'elevenlabs',
+            'voiceModel':'eleven_english_sts_v2',
+            'targetVoiceId':'j9nOYxfwt3sxAi32BnNI',
+            'targetVoiceIdentity':'SUNDAY AFTER MIDNIGHT / D1',
+            'files':files,
+            'durationContinuity':{'guideSeconds':guide_d,'finalSeconds':final_d,'ratio':ratio,'passed':0.97 <= ratio <= 1.03},
+            'claimState':'FULL_AUDIO_CANDIDATE_NOT_YET_HUMAN_LOCKED',
+            'g2Locked':False,
+            'publicReleaseAuthorized':False
+          }
+          (root/'production-receipt.json').write_text(json.dumps(receipt,indent=2))
+          if not receipt['durationContinuity']['passed']:
+              raise SystemExit(f'final duration continuity failed: {ratio}')
+          PY
+
+      - name: Upload calibration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blaize-looks-expensive-d1-full-audio
+          path: artifacts/looks-expensive
+          retention-days: 7
+          if-no-files-found: error
