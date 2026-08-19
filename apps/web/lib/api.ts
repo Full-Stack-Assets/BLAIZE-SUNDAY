@@ -63,18 +63,16 @@ export function requiredString(
 }
 
 export function apiError(error: unknown) {
-  if (error && typeof error === "object" && "code" in error && "status" in error) {
-    const e = error as { code: string; status: number; message?: string };
-    return NextResponse.json(
-      { ok: false, error: e.code || e.message || "UNKNOWN_ERROR" },
-      { status: typeof e.status === "number" ? e.status : 500 }
-    );
-  }
-
-  const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+  const code = error instanceof ApiRequestError ? error.code : error instanceof Error ? error.message : "UNKNOWN_ERROR";
   const status = error instanceof ApiRequestError
     ? error.status
-    : ["RELEASE_NOT_FOUND", "APPROVAL_NOT_FOUND", "ACTION_PACKAGE_NOT_FOUND"].includes(code)
+    : [
+          "RELEASE_NOT_FOUND",
+          "APPROVAL_NOT_FOUND",
+          "ACTION_PACKAGE_NOT_FOUND",
+          "ARTIST_NOT_FOUND",
+          "WORKFLOW_NOT_FOUND"
+        ].includes(code)
       ? 404
       : [
           "APPROVAL_ALREADY_RESOLVED",

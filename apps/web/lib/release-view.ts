@@ -1,11 +1,4 @@
-export type DistributionStatus =
-  | "PREPARED"
-  | "AWAITING_AUTHORIZATION"
-  | "SUBMITTED"
-  | "ACCEPTED"
-  | "SCHEDULED"
-  | "LIVE"
-  | "FAILED";
+import type { DistributionStatus } from "@songforge/release";
 
 export const RELEASE_FLOW = [
   "PREPARED",

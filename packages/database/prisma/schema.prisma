@@ -21,6 +21,7 @@ model Artist {
   projects     SongProject[]
   releases     Release[]
   agentRuns    AgentRun[]
+  workflowRuns WorkflowRun[]
 }
 
 model ArtistCanon {
@@ -85,17 +86,20 @@ model SongProject {
   generationHistory GenerationHistory[]
   analyticsSnapshots AnalyticsSnapshot[]
   revenueEvents      RevenueEvent[]
+  workflowRuns       WorkflowRun[]
 
   @@index([artistId, createdAt])
 }
 
 enum ProjectState {
   IDEA
+  STRATEGY
   WRITING
   PRODUCTION
   VOCALS
   MIXING
   MASTERING
+  SELECTED
   QA
   ASSET_GENERATION
   METADATA
@@ -409,15 +413,20 @@ model ExternalActionReceipt {
 }
 
 model Agent {
-  id            String   @id
-  name          String
-  category      String
-  description   String
-  active        Boolean  @default(true)
-  autonomyLevel String
-  runbook       Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                    String   @id
+  name                  String
+  category              String
+  description           String
+  roleId                String   @unique
+  riskTier              String   @default("moderate")
+  implementationStatus  String   @default("UNIMPLEMENTED")
+  active                Boolean  @default(true)
+  autonomyLevel         String
+  skills                Json?
+  integrations          Json?
+  runbook               Json
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model AgentRun {
@@ -497,4 +506,54 @@ model RevenueEvent {
   createdAt   DateTime @default(now())
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowRun {
+  id              String   @id @default(uuid())
+  artistId        String
+  projectId       String?
+  command         String
+  idempotencyKey  String   @unique
+  status          String
+  mode            String
+  queue           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  artist  Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  project SongProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  steps   WorkflowStep[]
+
+  @@index([artistId, createdAt])
+}
+
+model WorkflowStep {
+  id            String   @id @default(uuid())
+  workflowId    String
+  roleId        String
+  status        String
+  envelope      Json?
+  error         String?
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  workflow WorkflowRun @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, startedAt])
+}
+
+model IntegrationConnection {
+  id           String   @id
+  provider     String   @unique
+  status       String
+  capabilities Json
+  lastChecked  DateTime @default(now())
+  detail       String?
+}
+
+model IdempotencyKey {
+  id        String   @id
+  command   String
+  resource  String
+  createdAt DateTime @default(now())
 }

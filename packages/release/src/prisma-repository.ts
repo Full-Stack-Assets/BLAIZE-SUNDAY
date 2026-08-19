@@ -16,7 +16,11 @@ import type { DistributionStatus } from "./state-machine.ts";
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 export class PrismaReleaseRepository implements ReleaseRepository {
-  constructor(private readonly client: PrismaClient = defaultPrisma) {}
+  private readonly client: PrismaClient;
+
+  constructor(client: PrismaClient = defaultPrisma) {
+    this.client = client;
+  }
 
   async saveRelease(release: ReleaseRecord): Promise<void> {
     await this.client.release.upsert({

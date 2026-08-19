@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 
-/** Lab mode: list endpoint without Prisma. */
+import { apiError } from "@/lib/api";
+
 export async function GET() {
-  return NextResponse.json(
-    {
-      ok: false,
-      error: "LAB_RELEASE_SERVICE_UNAVAILABLE",
-      releases: [],
-      message:
-        "Server release store is not connected. Use the Lab Releases page (local state).",
-    },
-    { status: 503 }
-  );
+  try {
+    const releases = await prisma.release.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        project: { select: { title: true, workingTitle: true } },
+        approvals: { where: { status: "PENDING" }, select: { id: true } },
+        events: { orderBy: { createdAt: "desc" }, take: 1 }
+      }
+    });
+    return NextResponse.json({ ok: true, releases });
+  } catch (error) {
+    return apiError(error);
+  }
 }

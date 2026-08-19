@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { hashPayload } from "../../shared/src/domain.ts";
+import { hashPayload } from "@songforge/shared";
 import {
   createApprovalRequest,
   resolveApproval,

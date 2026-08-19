@@ -7,18 +7,32 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test lib/*.test.ts"
   },
   "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "@songforge/agents": "workspace:*",
+    "@songforge/canon": "workspace:*",
+    "@songforge/database": "workspace:*",
+    "@songforge/integrations": "workspace:*",
+    "@songforge/llm": "workspace:*",
+    "@songforge/policy": "workspace:*",
+    "@songforge/release": "workspace:*",
+    "@songforge/shared": "workspace:*",
+    "@songforge/voice": "workspace:*",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "bullmq": "^5.34.5",
+    "ioredis": "^5.4.2",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.4",
     "lucide-react": "^0.460.0",
     "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@types/node": "^22.7.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
