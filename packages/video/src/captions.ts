@@ -126,7 +126,7 @@ export class UnconfiguredLocalAlignmentProvider implements LocalAlignmentProvide
     return "UNCONFIGURED";
   }
 
-  async align(): Promise<CaptionTimeline> {
+  async align(_input: { mediaPath: string; locale: string }): Promise<CaptionTimeline> {
     throw new Error("LOCAL_ALIGNMENT_UNCONFIGURED");
   }
 }
