@@ -47,6 +47,9 @@ importers:
       '@songforge/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@songforge/video':
+        specifier: workspace:*
+        version: link:../../packages/video
       '@songforge/voice':
         specifier: workspace:*
         version: link:../../packages/voice
@@ -257,6 +260,22 @@ importers:
       '@types/node':
         specifier: ^24.3.0
         version: 24.13.3
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
+  packages/video:
+    dependencies:
+      '@prisma/client':
+        specifier: ^5.18.0
+        version: 5.22.0(prisma@5.22.0)
+      '@songforge/database':
+        specifier: workspace:*
+        version: link:../database
+      '@songforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
