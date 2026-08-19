@@ -78,6 +78,23 @@ function mapCaption(row: any): CaptionRecord {
   };
 }
 
+function captionData(caption: CaptionRecord) {
+  return {
+    id: caption.id,
+    runId: caption.runId,
+    version: caption.version,
+    locale: caption.locale,
+    source: caption.source,
+    format: caption.format,
+    content: caption.content,
+    contentHash: caption.contentHash,
+    cueCount: caption.cueCount,
+    startSeconds: caption.startSeconds,
+    endSeconds: caption.endSeconds,
+    sourceMediaHash: caption.sourceMediaHash
+  };
+}
+
 export class PrismaVideoRunRepository implements VideoRunRepository {
   async create(run: VideoRunRecord): Promise<VideoRunRecord> {
     const row = await prisma.videoGenerationRun.create({
@@ -170,23 +187,19 @@ export class PrismaVideoRunRepository implements VideoRunRepository {
   }
 
   async attachCaption(caption: CaptionRecord): Promise<CaptionRecord> {
-    const row = await prisma.videoCaptionAsset.create({
-      data: {
-        id: caption.id,
-        runId: caption.runId,
-        version: caption.version,
-        locale: caption.locale,
-        source: caption.source,
-        format: caption.format,
-        content: caption.content,
-        contentHash: caption.contentHash,
-        cueCount: caption.cueCount,
-        startSeconds: caption.startSeconds,
-        endSeconds: caption.endSeconds,
-        sourceMediaHash: caption.sourceMediaHash
-      }
-    });
-    return mapCaption(row);
+    const [stored] = await this.attachCaptions([caption]);
+    if (!stored) throw new Error("CAPTION_BATCH_EMPTY");
+    return stored;
+  }
+
+  async attachCaptions(captions: CaptionRecord[]): Promise<CaptionRecord[]> {
+    if (!captions.length) return [];
+    const rows = await prisma.$transaction(
+      captions.map(caption =>
+        prisma.videoCaptionAsset.create({ data: captionData(caption) })
+      )
+    );
+    return rows.map(mapCaption);
   }
 
   async listCaptions(runId: string): Promise<CaptionRecord[]> {
