@@ -1,0 +1,58 @@
+name: ElevenLabs Voice Design
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elevenlabs-voice-design-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Generate SUNDAY AFTER MIDNIGHT previews
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      VOICE_DESIGN_OUTPUT_DIR: artifacts/voice-design
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify secret exists
+        shell: bash
+        run: |
+          if [ -z "$ELEVENLABS_API_KEY" ]; then
+            echo "ELEVENLABS_API_KEY repository secret is not configured." >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck voice package
+        run: pnpm --filter @songforge/voice typecheck
+
+      - name: Generate canonical preview set
+        run: node --experimental-strip-types packages/voice/src/elevenlabs-design-cli.ts
+
+      - name: Upload private preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunday-after-midnight-elevenlabs-previews
+          path: artifacts/voice-design
+          if-no-files-found: error
+          retention-days: 7
