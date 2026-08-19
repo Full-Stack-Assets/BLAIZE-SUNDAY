@@ -60,6 +60,17 @@ export interface VoiceDesignRuntimeOptions {
   baseUrl?: string;
 }
 
+export const SUNDAY_AFTER_MIDNIGHT_DESIGN = Object.freeze({
+  voiceName: "SUNDAY AFTER MIDNIGHT",
+  voiceIdentityId: "blaize-sunday/sunday-after-midnight",
+  modelId: "eleven_ttv_v3" as const,
+  seed: 17081926,
+  voiceDescription:
+    "Original contemporary American masculine artist voice in a warm low-mid register. Intimate close-mic presence, relaxed slightly behind-the-beat phrasing, dry self-aware confidence, clean sibilants and crisp consonants, controlled breath texture, and an emotionally guarded baseline that can reveal precise vulnerability without melodrama. Modern, region-neutral, lightly textured, smooth rather than booming, capable of rhythm-forward melodic-rap delivery and soft R&B extension. Avoid announcer projection, exaggerated rasp, cartoon swagger, glossy generic pop polish, theatrical diction, smeared consonants, and artificial vocal affectation.",
+  previewText:
+    "Card declined, fit approved. I look certain, feel confused. Bad decisions, great outfit. I got good at looking certain long before I felt okay.",
+});
+
 export class ElevenLabsVoiceDesignError extends Error {
   readonly code: string;
   readonly status: number | null;
@@ -278,6 +289,20 @@ export async function designVoicePreviews(
   };
 }
 
+export function designSundayAfterMidnightPreviews(
+  options?: VoiceDesignRuntimeOptions,
+): Promise<VoiceDesignResult> {
+  return designVoicePreviews(
+    {
+      voiceDescription: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription,
+      previewText: SUNDAY_AFTER_MIDNIGHT_DESIGN.previewText,
+      modelId: SUNDAY_AFTER_MIDNIGHT_DESIGN.modelId,
+      seed: SUNDAY_AFTER_MIDNIGHT_DESIGN.seed,
+    },
+    options,
+  );
+}
+
 function requireHumanApproval(
   approval: HumanVoicePersistenceApproval | null | undefined,
 ): HumanVoicePersistenceApproval {
@@ -356,4 +381,25 @@ export async function createDesignedVoice(
     approvalId: approval.approvalId,
     approvedBy: approval.approvedBy,
   };
+}
+
+export function createSundayAfterMidnightVoice(
+  generatedVoiceId: string,
+  approval: HumanVoicePersistenceApproval | null,
+  options?: VoiceDesignRuntimeOptions,
+): Promise<DesignedVoiceResult> {
+  return createDesignedVoice(
+    {
+      generatedVoiceId,
+      voiceName: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceName,
+      voiceDescription: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceDescription,
+      labels: {
+        artist: "BLAIZE SUNDAY",
+        canon: "SUNDAY AFTER MIDNIGHT",
+        voice_identity_id: SUNDAY_AFTER_MIDNIGHT_DESIGN.voiceIdentityId,
+      },
+      approval,
+    },
+    options,
+  );
 }
