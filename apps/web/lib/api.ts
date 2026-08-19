@@ -81,7 +81,14 @@ export function apiError(error: unknown) {
           "SUBMISSION_NOT_AUTHORIZED",
           "REVISION_EVIDENCE_REQUIRED",
           "CAPTION_VERSION_ALREADY_EXISTS",
-          "VIDEO_RUN_ALREADY_EXISTS"
+          "VIDEO_RUN_ALREADY_EXISTS",
+          "VIDEO_VERSION_CONFLICT",
+          "VIDEO_PERSISTENCE_CONFLICT",
+          "EXTERNAL_TASK_RECEIPT_REQUIRED",
+          "EXTERNAL_TASK_RECEIPT_IMMUTABLE",
+          "EXTERNAL_RESULT_RECEIPT_IMMUTABLE",
+          "EXTERNAL_TASK_RECEIPT_CONFLICT",
+          "QC_NOT_READY"
         ].includes(code)
         ? 409
         : [
