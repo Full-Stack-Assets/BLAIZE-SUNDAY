@@ -47,12 +47,6 @@ jobs:
       - name: Install
         run: pnpm install --no-frozen-lockfile
 
-      - name: Verify single Next config
-        run: |
-          count=$(find apps/web -maxdepth 1 -type f -name 'next.config.*' | wc -l | tr -d ' ')
-          echo "Next config count: $count"
-          test "$count" -eq 1
-
       # A repository-wide Prettier probe currently reports 90 files across
       # existing Songforge code/docs and this feature. PR #7 records that debt;
       # this workflow keeps functional gates strict without unrelated mass formatting.
@@ -70,6 +64,12 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Verify single Next config
+        run: |
+          count=$(find apps/web -maxdepth 1 -type f -name 'next.config.*' | wc -l | tr -d ' ')
+          echo "Next config count: $count"
+          test "$count" -eq 1
 
       - name: Build web
         run: pnpm --filter @songforge/web build
