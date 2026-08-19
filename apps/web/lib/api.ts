@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { apiStatusForCode } from "./api-error-status";
 
 export class ApiRequestError extends Error {
   readonly code: string;
@@ -64,51 +65,8 @@ export function requiredString(
 
 export function apiError(error: unknown) {
   const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-  const status = error instanceof ApiRequestError
-    ? error.status
-    : [
-          "RELEASE_NOT_FOUND",
-          "APPROVAL_NOT_FOUND",
-          "ACTION_PACKAGE_NOT_FOUND",
-          "VIDEO_RUN_NOT_FOUND"
-        ].includes(code)
-      ? 404
-      : [
-          "APPROVAL_ALREADY_RESOLVED",
-          "APPROVAL_EXPIRED",
-          "PAYLOAD_MISMATCH",
-          "INVALID_RELEASE_TRANSITION",
-          "SUBMISSION_NOT_AUTHORIZED",
-          "REVISION_EVIDENCE_REQUIRED",
-          "CAPTION_VERSION_ALREADY_EXISTS",
-          "VIDEO_RUN_ALREADY_EXISTS",
-          "VIDEO_VERSION_CONFLICT",
-          "VIDEO_PERSISTENCE_CONFLICT",
-          "EXTERNAL_TASK_RECEIPT_REQUIRED",
-          "EXTERNAL_TASK_RECEIPT_IMMUTABLE",
-          "EXTERNAL_RESULT_RECEIPT_IMMUTABLE",
-          "EXTERNAL_TASK_RECEIPT_CONFLICT",
-          "QC_NOT_READY"
-        ].includes(code)
-        ? 409
-        : [
-            "EXTERNAL_CONFIRMATION_REQUIRED",
-            "VERIFIED_PLATFORM_URL_REQUIRED",
-            "VALID_SCHEDULE_DATE_REQUIRED",
-            "PROVIDER_MISMATCH",
-            "RELEASE_PACKAGE_INCOMPLETE",
-            "RELEASE_NOT_PREPARED",
-            "EXTERNAL_TASK_ID_REQUIRED",
-            "CAPTIONS_REQUIRED",
-            "TECHNICAL_METADATA_UNAVAILABLE",
-            "CAPTION_LOCALE_REQUIRED",
-            "EMPTY_CAPTION_TEXT",
-            "OVERLAPPING_CAPTIONS"
-          ].includes(code) ||
-          code.startsWith("INVALID_") ||
-          code.endsWith("_REQUIRED")
-          ? 400
-          : 500;
+  const status =
+    error instanceof ApiRequestError ? error.status : apiStatusForCode(code);
 
   return NextResponse.json(
     {
