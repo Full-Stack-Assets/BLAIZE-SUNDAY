@@ -43,6 +43,87 @@ const ROLES = [
   ["youtube_agent", "YouTube Agent", "delivery", "PREPARE_ONLY"]
 ] as const;
 
+const SUNDAY_AFTER_MIDNIGHT_B3 = {
+  voiceIdentityId: "blaize-sunday/sunday-after-midnight",
+  internalCandidate: "B3",
+  provider: "heygen",
+  providerVoiceId: "10863794b2454eaa8781f377939d6f14",
+  providerAssetClass: "public",
+  providerLibraryLabelObserved: "Gerardo - Lifelike",
+  status: "G2_FINALIST",
+  rights: {
+    ownership: "NOT_OWNED",
+    clonePermission: "UNKNOWN",
+    commercialContinuity: "UNVERIFIED"
+  },
+  timbre: {
+    register: "masculine low-mid",
+    micPerspective: "intimate close-mic",
+    cadence: "relaxed conversational",
+    confidence: "dry, controlled",
+    depth: "slightly deeper than original Candidate B",
+    sibilants: "clean",
+    lisp: "avoid audible lisp or smeared sibilants",
+    breath: "controlled",
+    emotionalBaseline: "guarded",
+    accent: "contemporary American, not strongly regional"
+  },
+  antiTargets: [
+    "radio-DJ baritone",
+    "trailer narration",
+    "exaggerated rasp",
+    "cartoon swagger",
+    "musical-theater diction",
+    "glossy generic pop tenor",
+    "over-bright or lispy sibilants",
+    "imitation of a living performer"
+  ],
+  modes: {
+    sundayTalk: {
+      speed: 0.92,
+      behavior: "dry, close, almost spoken, deadpan, clean diction"
+    },
+    blaizeMode: {
+      speed: 1.08,
+      behavior: "rhythm-forward, sharper attack, compact phrasing"
+    },
+    velvet: {
+      speed: 0.86,
+      behavior: "melodic extension target; restrained breathiness and falsetto; speech render is only a proxy"
+    },
+    zeroStatic: {
+      speed: 0.78,
+      behavior: "exposed, minimal theatricality; speech render is only a proxy"
+    }
+  },
+  g2Thresholds: {
+    aggregateSamePerformerRecognition: 0.7,
+    minimumModePairRecognition: 0.6,
+    minimumValidIndependentRaters: 12
+  }
+} as const;
+
+const B3_REFERENCE_ASSETS = {
+  diagnostic: {
+    type: "SPOKEN_DIAGNOSTIC",
+    url: "https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=55a92ff2-a617-407b-b998-0664ed296802.wav",
+    verification: "EXACT_PROVIDER_VOICE_ID"
+  },
+  auditionScript: "Card declined, fit approved. I look certain, feel confused. Bad decisions, great outfit. I got good at looking certain long before I felt okay.",
+  modeProxies: {
+    sundayTalk: "https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=33f59716-c455-40f6-b4f5-e186d982d70e.wav",
+    blaizeMode: "https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=5c1c9268-962a-45e3-b630-d2b9a86e6fca.wav",
+    velvet: "https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=1ded3221-37e9-4034-8ee2-82c3f3524357.wav",
+    zeroStatic: "https://resource2.heygen.ai/text_to_speech/b0cbb3d7f0a549159794a8b3ba4a41ab/10863794b2454eaa8781f377939d6f14/id=0ea954d8-d311-40ef-8923-c2a7cf5c26a0.wav"
+  },
+  singingDirection: {
+    provider: "picsart/minimax-music-v3",
+    generationHandle: "99cd90d2-3e81-4554-abee-b2c96f5fb526",
+    url: "https://cdn-editing-temp.picsart.com/editing-temp/64e7a442-b745-4706-af23-eb943067d53a.mp3",
+    verification: "MUSICAL_DIRECTION_ONLY_TIMBRE_NOT_VALIDATED"
+  }
+} as const;
+
 async function main() {
   const artist = await prisma.artist.upsert({
     where: { slug: "blaize-sunday" },
