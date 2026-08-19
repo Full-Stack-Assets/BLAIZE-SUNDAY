@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/songforge?schema=public
+      DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
 
     steps:
       - name: Checkout
@@ -42,21 +42,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          # No cache: pnpm until pnpm-lock.yaml is committed
+          cache: pnpm
 
       - name: Install
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      # A repository-wide Prettier probe currently reports 90 files across
-      # existing Songforge code/docs and this feature. PR #7 records that debt;
-      # this workflow keeps functional gates strict without unrelated mass formatting.
       - name: Git whitespace check
         run: git diff --check
 
       - name: Prisma validate
         run: pnpm db:validate
 
-      - name: Prisma generate
+      - name: Generate Prisma client
         run: pnpm db:generate
 
       - name: Typecheck
@@ -88,7 +85,7 @@ jobs:
       - name: Smoke production container
         run: |
           cid=$(docker run -d --rm \
-            -e DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/songforge?schema=public \
+            -e DATABASE_URL=postgresql://songforge:songforge@127.0.0.1:5432/songforge?schema=public \
             -p 3000:3000 songforge-web-ci)
           trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
           ok=0
@@ -103,3 +100,36 @@ jobs:
             docker logs "$cid"
             exit 1
           fi
+
+  persist:
+    name: Postgres persist
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: songforge
+          POSTGRES_PASSWORD: songforge
+          POSTGRES_DB: songforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U songforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm --filter @songforge/agents test

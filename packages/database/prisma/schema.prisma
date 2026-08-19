@@ -21,6 +21,7 @@ model Artist {
   projects     SongProject[]
   releases     Release[]
   agentRuns    AgentRun[]
+  workflowRuns WorkflowRun[]
 }
 
 model ArtistCanon {
@@ -85,17 +86,20 @@ model SongProject {
   generationHistory GenerationHistory[]
   analyticsSnapshots AnalyticsSnapshot[]
   revenueEvents      RevenueEvent[]
+  workflowRuns       WorkflowRun[]
 
   @@index([artistId, createdAt])
 }
 
 enum ProjectState {
   IDEA
+  STRATEGY
   WRITING
   PRODUCTION
   VOCALS
   MIXING
   MASTERING
+  SELECTED
   QA
   ASSET_GENERATION
   METADATA
@@ -263,8 +267,8 @@ enum DistributionStatus {
 }
 
 model ReleaseMetadata {
-  id           String      @id @default(uuid())
-  projectId    String      @unique
+  id           String   @id @default(uuid())
+  projectId    String   @unique
   title        String
   artistName   String
   version      String?
@@ -280,26 +284,26 @@ model ReleaseMetadata {
   youtubeTitle String?
   youtubeDesc  String?
   dspMetadata  Json
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model RightsRecord {
-  id                  String      @id @default(uuid())
-  projectId           String      @unique
+  id                  String   @id @default(uuid())
+  projectId           String   @unique
   ownership           Json
-  ownershipConfirmed  Boolean     @default(false)
+  ownershipConfirmed  Boolean  @default(false)
   contributors        Json
   licenses            Json
   aiGenerationRecords Json
   provenanceManifest  Json
-  provenanceComplete  Boolean     @default(false)
+  provenanceComplete  Boolean  @default(false)
   rightsWarnings      Json?
-  approved            Boolean     @default(false)
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  approved            Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
@@ -346,9 +350,9 @@ model RevisionRequest {
   createdAt     DateTime       @default(now())
   completedAt   DateTime?
 
-  approval Approval   @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  approval Approval    @relation(fields: [approvalId], references: [id], onDelete: Cascade)
   project  SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  release  Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  release  Release     @relation(fields: [releaseId], references: [id], onDelete: Cascade)
 
   @@index([releaseId, status])
 }
@@ -409,15 +413,20 @@ model ExternalActionReceipt {
 }
 
 model Agent {
-  id            String   @id
-  name          String
-  category      String
-  description   String
-  active        Boolean  @default(true)
-  autonomyLevel String
-  runbook       Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                   String   @id
+  name                 String
+  category             String
+  description          String
+  roleId               String   @unique
+  riskTier             String   @default("moderate")
+  implementationStatus String   @default("UNIMPLEMENTED")
+  active               Boolean  @default(true)
+  autonomyLevel        String
+  skills               Json?
+  integrations         Json?
+  runbook              Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model AgentRun {
@@ -497,6 +506,56 @@ model RevenueEvent {
   createdAt   DateTime @default(now())
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowRun {
+  id             String   @id @default(uuid())
+  artistId       String
+  projectId      String?
+  command        String
+  idempotencyKey String   @unique
+  status         String
+  mode           String
+  queue          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  artist  Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  project SongProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  steps   WorkflowStep[]
+
+  @@index([artistId, createdAt])
+}
+
+model WorkflowStep {
+  id          String   @id @default(uuid())
+  workflowId  String
+  roleId      String
+  status      String
+  envelope    Json?
+  error       String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  workflow WorkflowRun @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, startedAt])
+}
+
+model IntegrationConnection {
+  id           String   @id
+  provider     String   @unique
+  status       String
+  capabilities Json
+  lastChecked  DateTime @default(now())
+  detail       String?
+}
+
+model IdempotencyKey {
+  id        String   @id
+  command   String
+  resource  String
+  createdAt DateTime @default(now())
 }
 
 enum VideoGenerationRunStatus {

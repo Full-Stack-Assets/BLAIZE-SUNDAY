@@ -6,7 +6,6 @@ import {
   saveProject,
   saveVersion,
 } from "@/lib/persistence";
-import { forgeVariation, delay } from "@/lib/forge";
 import type { SectionId, SongProject } from "@/lib/types";
 import { SECTION_ORDER } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -59,10 +58,6 @@ export function SongLab({
     setVariants([]);
     try {
       // Prefer API (remote or local engine behind /api/forge)
-      const key =
-        typeof window !== "undefined"
-          ? localStorage.getItem("songforge.llmKey") || ""
-          : "";
       const res = await fetch("/api/forge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,18 +65,16 @@ export function SongLab({
           sectionId: section,
           currentText: text,
           title,
-          apiKey: key || undefined,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setVariants(data.variations || []);
-      } else {
-        setVariants(forgeVariation(section, text, title));
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "FORGE_BLOCKED");
       }
-    } catch {
-      await delay(200);
-      setVariants(forgeVariation(section, text, title));
+      setVariants(data.variations || []);
+    } catch (error) {
+      setVariants([]);
+      window.alert(error instanceof Error ? error.message : "FORGE_BLOCKED");
     } finally {
       setForging(false);
     }

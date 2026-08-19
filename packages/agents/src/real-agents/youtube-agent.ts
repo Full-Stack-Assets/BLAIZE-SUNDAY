@@ -1,7 +1,7 @@
 import {
   buildYouTubePayload,
   type ReleasePreparationContext
-} from "../../../release/src/payloads.ts";
+} from "@songforge/release";
 
 export class YouTubeAgent {
   readonly id = "youtube_agent";

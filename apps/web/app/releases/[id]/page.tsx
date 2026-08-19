@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { ApprovalControls } from "../../../components/ApprovalControls";
 import { ReleaseEvidenceControls } from "../../../components/ReleaseEvidenceControls";
-import { Shell } from "../../../components/Shell";
 import { StatusTimeline } from "../../../components/StatusTimeline";
 import { releaseTruthLabel } from "../../../lib/release-view";
 
@@ -44,7 +43,7 @@ export default async function ReleaseDetailPage({
   });
 
   return (
-    <Shell>
+    <div className="space-y-4">
       <section className="card detail-hero">
         <div><p className="eyebrow">{release.releaseType} / {release.distributor ?? "provider unselected"}</p><h1>{release.title}</h1><p className="muted">Release ID <span className="hash">{release.id}</span></p></div>
         <div className="truth"><span className={`pill ${release.status === "LIVE" && release.verifiedPlatformUrl && release.externalConfirmationId ? "pill-green" : release.status === "FAILED" ? "pill-red" : "pill-amber"}`}>{truth}</span></div>
@@ -79,6 +78,6 @@ export default async function ReleaseDetailPage({
         <div className="card"><h2 className="section-title">External receipts</h2><p className="metric">{release.receipts.length}</p><p className="muted small">Provider evidence stored independently from internal decisions.</p></div>
         <div className="card"><h2 className="section-title">Revision queue</h2><p className="metric">{release.revisions.filter(item => item.status === "QUEUED").length}</p><p className="muted small">Structured instructions routed to the orchestrator.</p></div>
       </section>
-    </Shell>
+    </div>
   );
 }

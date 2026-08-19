@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
-import { apiStatusForCode } from "./api-error-status";
+
+import { apiStatusForCode } from "./api-error-status.ts";
 
 export class ApiRequestError extends Error {
   readonly code: string;
@@ -64,9 +65,14 @@ export function requiredString(
 }
 
 export function apiError(error: unknown) {
-  const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-  const status =
-    error instanceof ApiRequestError ? error.status : apiStatusForCode(code);
+  const code = error instanceof ApiRequestError
+    ? error.code
+    : error instanceof Error
+      ? error.message
+      : "UNKNOWN_ERROR";
+  const status = error instanceof ApiRequestError
+    ? error.status
+    : apiStatusForCode(code);
 
   return NextResponse.json(
     {

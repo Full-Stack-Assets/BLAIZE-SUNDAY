@@ -10,20 +10,25 @@ import {
   Radio,
   Settings,
   Music2,
+  FolderKanban,
+  Sparkles,
   Clapperboard,
 } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Lab", icon: PenLine },
   { href: "/video-lab", label: "Video", icon: Clapperboard },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/pipeline", label: "Pipeline", icon: Layers },
   { href: "/approvals", label: "Approvals", icon: CheckCircle2 },
   { href: "/releases", label: "Releases", icon: Radio },
+  { href: "/grow", label: "Grow", icon: Sparkles },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const videoFactory = pathname.startsWith("/video-lab");
+  const HomeIcon = videoFactory ? Clapperboard : Music2;
 
   return (
     <div className="flex flex-col min-h-dvh">
@@ -31,11 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between h-12 px-4 max-w-5xl mx-auto">
           <Link href={videoFactory ? "/video-lab" : "/"} className="flex items-center gap-2.5 group">
             <div className="w-6 h-6 rounded-sm bg-accent/15 border border-accent/30 flex items-center justify-center">
-              {videoFactory ? (
-                <Clapperboard className="w-3.5 h-3.5 text-accent" strokeWidth={2.5} />
-              ) : (
-                <Music2 className="w-3.5 h-3.5 text-accent" strokeWidth={2.5} />
-              )}
+              <HomeIcon className="w-3.5 h-3.5 text-accent" strokeWidth={2.5} />
             </div>
             <span className="text-[13px] font-medium tracking-tight text-bone group-hover:text-accent transition-colors">
               {videoFactory ? "Video Factory" : "Songforge"}

@@ -1,25 +1,19 @@
 import { NextResponse } from "next/server";
 
-import { apiError, readJsonObject, requiredString } from "../../../../../lib/api";
-import { createReleaseCommandService } from "../../../../../lib/release-service.server";
-
+/** Lab mode: server-side distribution preparation is intentionally unavailable. */
 export async function POST(
-  request: Request,
+  _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await context.params;
-    const body = await readJsonObject(request);
-    const result = await createReleaseCommandService().prepareDistribution({
+  const { id } = await context.params;
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "LAB_RELEASE_SERVICE_UNAVAILABLE",
       releaseId: id,
-      provider: requiredString(body, "provider"),
-      actor:
-        typeof body.actor === "string" && body.actor.trim()
-          ? body.actor.trim()
-          : "distribution_agent"
-    });
-    return NextResponse.json({ ok: true, ...result }, { status: 201 });
-  } catch (error) {
-    return apiError(error);
-  }
+      message:
+        "Server distribution preparation is offline in Lab mode. Use the Lab release workflow (local state).",
+    },
+    { status: 503 }
+  );
 }

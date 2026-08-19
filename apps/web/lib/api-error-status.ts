@@ -2,6 +2,8 @@ const NOT_FOUND = new Set([
   "RELEASE_NOT_FOUND",
   "APPROVAL_NOT_FOUND",
   "ACTION_PACKAGE_NOT_FOUND",
+  "ARTIST_NOT_FOUND",
+  "WORKFLOW_NOT_FOUND",
   "VIDEO_RUN_NOT_FOUND"
 ]);
 
@@ -38,9 +40,14 @@ const BAD_REQUEST = new Set([
   "OVERLAPPING_CAPTIONS"
 ]);
 
+const SERVICE_UNAVAILABLE = new Set([
+  "LAB_RELEASE_SERVICE_UNAVAILABLE"
+]);
+
 export function apiStatusForCode(code: string): number {
   if (NOT_FOUND.has(code)) return 404;
   if (CONFLICT.has(code)) return 409;
+  if (SERVICE_UNAVAILABLE.has(code)) return 503;
   if (
     BAD_REQUEST.has(code) ||
     code.startsWith("INVALID_") ||
