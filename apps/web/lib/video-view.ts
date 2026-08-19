@@ -18,6 +18,33 @@ export const MUTATION_ACTIONS = [
   { value: "LONGER", label: "Longer" }
 ] as const;
 
+export interface PersistedExecutionRunDetail {
+  compiledConcept: string;
+  compiledExplanation: string;
+  promptHash: string;
+  brief: unknown;
+}
+
+export function executionPayloadFromRunDetail(run: PersistedExecutionRunDetail) {
+  const brief =
+    run.brief && typeof run.brief === "object" && !Array.isArray(run.brief)
+      ? (run.brief as Record<string, unknown>)
+      : {};
+  const locale =
+    typeof brief.locale === "string" && brief.locale.trim()
+      ? brief.locale.trim()
+      : "en";
+
+  return {
+    provider: "WISEBASE" as const,
+    mode: "CONNECTOR_MEDIATED" as const,
+    concept: run.compiledConcept,
+    explanation: run.compiledExplanation,
+    lang: locale,
+    promptHash: run.promptHash
+  };
+}
+
 export function describeVideoRunStatus(status: VideoUiStatus): string {
   switch (status) {
     case "AWAITING_EXTERNAL_EXECUTION":
