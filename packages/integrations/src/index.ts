@@ -53,8 +53,8 @@ export function inspectIntegrations(): IntegrationReport[] {
     {
       id: "elevenlabs",
       provider: "elevenlabs",
-      status: envStatus("ELEVENLABS_API_KEY", ["tts", "music"]),
-      capabilities: ["tts", "music"],
+      status: envStatus("ELEVENLABS_API_KEY", ["tts", "music", "voice_design"]),
+      capabilities: ["tts", "music", "voice_design"],
       detail: "Capability check only; no live claim without health ping"
     },
     {
