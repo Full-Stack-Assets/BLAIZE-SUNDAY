@@ -19,7 +19,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle noise texture for depth without clutter */
 body::before {
   content: "";
   position: fixed;
@@ -30,13 +29,11 @@ body::before {
   opacity: 0.4;
 }
 
-/* Clean focus rings */
 *:focus-visible {
   outline: 2px solid #c4a35a;
   outline-offset: 2px;
 }
 
-/* Scrollbar - minimal */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -52,7 +49,6 @@ body::before {
   background: #3e3e46;
 }
 
-/* Writing surface */
 .lyric-surface {
   font-variant-ligatures: none;
   letter-spacing: -0.01em;
@@ -63,18 +59,20 @@ body::before {
   @apply text-[10px] uppercase tracking-[0.18em] text-ash/70 font-medium;
 }
 
-/* Mobile keyboard + safe area */
+.input {
+  @apply w-full rounded-lg border border-slate-800 bg-void px-3 py-2.5 text-[13px] text-bone placeholder:text-ash/30 focus:border-accent/40 focus:outline-none;
+  font-size: 16px;
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Prevent iOS bounce from fighting the writing surface */
 html,
 body {
   overscroll-behavior-y: none;
 }
 
-/* Hide scrollbars on horizontal strips while keeping scroll */
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
