@@ -7,3 +7,5 @@ coverage
 *.log
 .DS_Store
 *.tsbuildinfo
+album/local-inputs/
+artifacts/album-build/

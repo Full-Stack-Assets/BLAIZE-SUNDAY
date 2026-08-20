@@ -1,0 +1,36 @@
+{
+  "01_LOOKS_EXPENSIVE": { "evidence_state": "VERIFIED", "documented_render_evidence": true },
+  "02_MY_THERAPIST_BLOCKED_ME": {
+    "evidence_state": "VERIFIED",
+    "documented_render_evidence": true
+  },
+  "03_BAD_DECISIONS_GREAT_OUTFIT": {
+    "evidence_state": "VERIFIED",
+    "documented_render_evidence": true
+  },
+  "04_PRETTY_BOY_PROBLEMS": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  },
+  "05_DELETE_AFTER_LISTENING": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  },
+  "06_NO_SIGNAL": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  },
+  "07_2_17_AM": { "evidence_state": "BLOCKED_SOURCE_MISSING", "documented_render_evidence": true },
+  "08_PARALLEL_YOU": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  },
+  "09_ROOM_SERVICE_FOR_ONE": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  },
+  "10_WRONG_FLOOR": {
+    "evidence_state": "BLOCKED_SOURCE_MISSING",
+    "documented_render_evidence": true
+  }
+}
