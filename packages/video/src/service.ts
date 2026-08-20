@@ -6,7 +6,8 @@ import {
   parseVtt,
   toSrt,
   toVtt,
-  type CaptionTimeline
+  type CaptionTimeline,
+  type LocalAlignmentProvider
 } from "./captions.ts";
 import {
   createVideoBrief,
@@ -129,10 +130,16 @@ function storedResultReceipt(run: VideoRunRecord) {
 export class VideoRunService {
   private readonly repo: VideoRunRepository;
   private readonly technicalInspector?: TechnicalInspector;
+  private readonly alignmentProvider?: LocalAlignmentProvider;
 
-  constructor(repo: VideoRunRepository, technicalInspector?: TechnicalInspector) {
+  constructor(
+    repo: VideoRunRepository,
+    technicalInspector?: TechnicalInspector,
+    alignmentProvider?: LocalAlignmentProvider
+  ) {
     this.repo = repo;
     this.technicalInspector = technicalInspector;
+    this.alignmentProvider = alignmentProvider;
   }
 
   async createRoot(input: CreateRootInput): Promise<VideoRunRecord> {
@@ -319,6 +326,33 @@ export class VideoRunService {
     });
 
     return { run: updated, timeline, captions };
+  }
+
+  async alignCaptions(
+    runId: string,
+    locale: string
+  ): Promise<AttachCaptionsResult> {
+    const run = await this.repo.get(runId);
+    if (!run) throw new Error("VIDEO_RUN_NOT_FOUND");
+    if (!run.videoUrl || run.externalStatus?.trim().toLowerCase() !== "completed") {
+      throw new Error("CAPTION_ALIGNMENT_NOT_READY");
+    }
+    if (!this.alignmentProvider || (await this.alignmentProvider.health()) !== "CONFIGURED") {
+      throw new Error("LOCAL_ALIGNMENT_UNCONFIGURED");
+    }
+
+    const aligned = await this.alignmentProvider.align({
+      mediaPath: run.videoUrl,
+      locale
+    });
+    if (!aligned.sourceMediaHash.trim()) throw new Error("SOURCE_MEDIA_HASH_REQUIRED");
+
+    return this.attachCaptions(runId, {
+      source: "LOCAL_ALIGNMENT",
+      locale,
+      timeline: aligned.timeline,
+      sourceMediaHash: aligned.sourceMediaHash
+    });
   }
 
   async runQc(runId: string, input: RunQcInput): Promise<RunQcResult> {
