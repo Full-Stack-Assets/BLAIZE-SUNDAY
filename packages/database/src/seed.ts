@@ -216,12 +216,38 @@ async function main() {
 
   await prisma.voiceProfile.upsert({
     where: { artistId: artist.id },
-    update: { verificationStatus: "UNCONFIGURED" },
+    update: {
+      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
+      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
+      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
+      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
+      approvedReferenceAssets: [
+        {
+          candidate: "D1",
+          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
+          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
+          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
+          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
+          referenceAudioUsed: false
+        }
+      ]
+    },
     create: {
       artistId: artist.id,
-      verificationStatus: "UNCONFIGURED",
-      vocalSettings: { name: CANON.voiceName },
-      approvedReferenceAssets: []
+      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
+      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
+      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
+      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
+      approvedReferenceAssets: [
+        {
+          candidate: "D1",
+          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
+          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
+          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
+          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
+          referenceAudioUsed: false
+        }
+      ]
     }
   });
 
