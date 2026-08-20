@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import { inspectMedia } from "./media.ts";
+import { hashFile } from "./provenance.ts";
 import type { AlbumManifest } from "./types.ts";
 
 export interface ValidationReport {
@@ -89,7 +90,7 @@ export async function validateAlbumPackage(args: {
         errors.push(`${track.id}/${asset.filename}: expected asset missing or zero-byte`);
         continue;
       }
-      verifiedAssets.push(`${track.id}/${asset.filename}`);
+      const assetErrorCountBefore = errors.length;
 
       if (/\.(wav|flac|mp3)$/i.test(asset.filename)) {
         try {
@@ -109,13 +110,25 @@ export async function validateAlbumPackage(args: {
         }
       }
 
-      const baseName = asset.filename.split("/").pop()!;
-      if (
-        asset.filename.startsWith("MASTER/") &&
-        checksumMap.size > 0 &&
-        !checksumMap.has(baseName)
-      ) {
-        errors.push(`${track.id}/${asset.filename}: emitted master missing from checksum file`);
+      if (asset.filename.startsWith("MASTER/")) {
+        const baseName = asset.filename.split("/").pop()!;
+        if (checksumMap.size === 0) {
+          errors.push(`${track.id}/${asset.filename}: checksum file missing or empty`);
+        } else {
+          const expectedHash = checksumMap.get(baseName);
+          if (!expectedHash) {
+            errors.push(`${track.id}/${asset.filename}: emitted master missing from checksum file`);
+          } else {
+            const actualHash = await hashFile(path);
+            if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
+              errors.push(`${track.id}/${asset.filename}: checksum mismatch`);
+            }
+          }
+        }
+      }
+
+      if (errors.length === assetErrorCountBefore) {
+        verifiedAssets.push(`${track.id}/${asset.filename}`);
       }
     }
   }

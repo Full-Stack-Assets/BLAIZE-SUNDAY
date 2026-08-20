@@ -169,8 +169,18 @@ async function renderTrack(options: Record<string, string>): Promise<void> {
   const receipt = JSON.parse(
     await readFile(profile.sourceSelectionReceipt, "utf8")
   ) as SourceSelectionReceipt;
-  if (receipt.humanSelectionRequired || !receipt.selectedPath)
+  if (receipt.trackId !== trackId) {
+    throw new Error("source-selection receipt track does not match --track");
+  }
+  if (receipt.humanSelectionRequired || !receipt.selectedPath) {
     throw new Error("HUMAN_A_B_REQUIRED");
+  }
+  const selectedCandidate = receipt.candidates.find(
+    (candidate) => candidate.path === receipt.selectedPath
+  );
+  if (!selectedCandidate) {
+    throw new Error("selected source missing from selection receipt");
+  }
 
   const sourceMap = JSON.parse(await readFile(sourceMapPath, "utf8")) as SourceMap;
   if (!(sourceMap[trackId] ?? []).some((candidate) => candidate.path === receipt.selectedPath)) {
@@ -197,9 +207,6 @@ async function renderTrack(options: Record<string, string>): Promise<void> {
   );
   await mkdir(join(base, "METADATA"), { recursive: true });
   await writeChecksumFile(entries, join(base, "METADATA", "checksums.sha256"));
-  const selectedCandidate = receipt.candidates.find(
-    (candidate) => candidate.path === receipt.selectedPath
-  )!;
   await writeProvenanceReceipt(
     {
       assetId: `${trackId}:archive-master-candidate`,

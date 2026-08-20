@@ -39,6 +39,29 @@ test("neutral profile produces no audio filters", () => {
   assert.deepEqual(buildAudioFilters(neutralProfile), []);
 });
 
+test("mastering profile rejects non-numeric filter values", () => {
+  assert.throws(
+    () =>
+      validateMasteringProfile({
+        ...neutralProfile,
+        highpassHz: "80,volume=30" as unknown as number
+      }),
+    /highpassHz/
+  );
+});
+
+test("mastering profile rejects invalid compressor ranges", () => {
+  assert.throws(
+    () =>
+      validateMasteringProfile({
+        ...neutralProfile,
+        applyCompressor: true,
+        compressor: { thresholdDb: -12, ratio: 0, attackMs: -1, releaseMs: 80 }
+      }),
+    /compressor/
+  );
+});
+
 test("archive render creates 24-bit 48 kHz WAV, FLAC, and high-bitrate MP3", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "album-master-"));
   const input = join(dir, "source.wav");
