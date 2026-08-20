@@ -30,26 +30,13 @@ A lower-authority document cannot convert a derived asset into a native stem or 
 
 **Decision: `EXTEND_EXISTING` + `MERGE_WITH_EXISTING`**
 
-Reuse:
-
-- existing full-mix references,
-- existing derived repair metadata and validation,
-- existing proof-cycle masters/clean edits where accessible,
-- existing lyric package,
-- existing visual reference photographs,
-- existing generated visual candidates,
-- existing voice evidence and Canon,
-- existing video-factory architecture where useful.
-
-Do not create a parallel artist system or duplicate provenance ledger.
+Reuse existing full-mix references, repair metadata and validation, proof-cycle cleaned candidates, lyric packages, visual references, generated visual candidates, voice evidence, Canon, and the existing video-factory architecture where useful. Do not create a parallel artist system or duplicate provenance ledger.
 
 ## 4. Non-negotiable truth model
 
 ### 4.1 Derived assets
 
-Any asset created from a completed stereo/mono mix through source separation or remixing remains **derived**.
-
-It must never be labelled:
+Any asset created from a completed stereo/mono mix through source separation or remixing remains **derived**. It must never be labelled:
 
 - Original studio master
 - Native instrumental
@@ -70,7 +57,7 @@ A 24-bit / 48 kHz WAV or FLAC exported from a cleaned lossy source is a **lossle
 
 ### 5.1 Verified accessible song audio
 
-The currently accessible Library contains complete song audio for the proof-cycle tracks:
+The accessible Library currently exposes complete song audio for the proof-cycle tracks:
 
 1. `LOOKS EXPENSIVE`
    - original MP3 reference
@@ -89,9 +76,7 @@ The currently accessible Library contains complete song audio for the proof-cycl
 
 Tracks 4–10 have machine-readable metadata defining source hashes, duration, format, and four derived WAV assets per track. Their actual audio payload is not currently surfaced in the accessible archive set.
 
-These tracks are therefore classified:
-
-`DOCUMENTED / PAYLOAD_NOT_YET_LOCATED`
+Evidence status: `BLOCKED_SOURCE_MISSING` with documentary evidence that the assets were previously rendered. This is **not** evidence that the payload is absent from all storage.
 
 They must not receive fabricated audio deliverables.
 
@@ -166,20 +151,44 @@ NN_TITLE/
 
 Missing assets are represented by explicit manifest state, never zero-byte placeholders that could be mistaken for deliverables.
 
-## 7. Asset-state model
+## 7. State semantics
 
-All album-package assets use one of the following internal states:
+State is modeled on three orthogonal axes so catalog, Canon, and evidence states are never conflated.
 
-- `VERIFIED_SOURCE`
-- `DERIVED_REPAIR_ONLY`
-- `CURATED_REFERENCE_MASTER`
-- `CANDIDATE`
+### 7.1 Canon asset state
+
+Use only the project-standard asset states:
+
+- `CANONICAL`
 - `APPROVED_PRODUCTION_ASSET`
-- `BLOCKED_SOURCE_MISSING`
+- `CANDIDATE`
+- `EXPERIMENT`
 - `SUPERSEDED`
 - `REJECTED`
+- `DERIVED_REPAIR_ONLY` when applicable
 
-`CURATED_REFERENCE_MASTER` is intentionally below `NATIVE_STEM_MASTER`.
+The Archive Remaster outputs produced here remain `APPROVED_PRODUCTION_ASSET` or `CANDIDATE` until Human Authority grants a more consequential state. Source-separated components remain `DERIVED_REPAIR_ONLY`.
+
+### 7.2 Catalog state
+
+- `CURATED_REFERENCE_MASTER` for the present derived/archive edition
+- `NATIVE_STEM_MASTER` only for a future native-stem rebuild
+
+### 7.3 Evidence state
+
+- `VERIFIED`
+- `UNVERIFIED`
+- `UNKNOWN`
+- `CONFLICTING`
+- `BLOCKED_SOURCE_MISSING`
+
+### 7.4 Song lifecycle status
+
+The existing Canon lifecycle remains unchanged:
+
+`CONCEPT → WRITING → DEMO → SELECTED → QA → RELEASE_READY → PUBLISHED → ARCHIVED`
+
+An asset can therefore be `DERIVED_REPAIR_ONLY`, catalog state `CURATED_REFERENCE_MASTER`, evidence state `VERIFIED`, while its song remains `QA`. These dimensions must never be collapsed into one label.
 
 ## 8. Audio pipeline
 
@@ -189,7 +198,7 @@ For each song:
 
 1. enumerate all known source and derivative candidates;
 2. compute SHA-256;
-3. inspect codec, duration, sample rate, bit depth, channels, peak, true peak where available, loudness, DC offset, and clipping indicators;
+3. inspect codec, duration, sample rate, bit depth, channels, peak, true peak where measurable, loudness, DC offset, and clipping indicators;
 4. compare original full mix to cleaned/music-forward candidates;
 5. document source-selection rationale;
 6. preserve originals unchanged.
@@ -215,15 +224,15 @@ Processing must not invent stereo information for mono sources merely to create 
 
 For source-backed tracks:
 
-- `ARCHIVE_MASTER_24-48.wav`: PCM 24-bit / 48 kHz, derived-source provenance embedded in sidecar metadata.
+- `ARCHIVE_MASTER_24-48.wav`: PCM 24-bit / 48 kHz, with derived-source provenance in sidecar metadata.
 - `MASTER.flac`: bit-perfect FLAC encoding of the archive-master WAV.
 - `REFERENCE_320.mp3`: 320 kbps listening/promo reference.
 
 ### 8.4 Alternate assets
 
-Use the original documented derived separations when surfaced. Do not silently re-run separation unless the original repair payload remains unavailable and a recovery branch is explicitly invoked.
+Use the original documented derived separations when surfaced. Do not silently re-run separation unless the original repair payload remains unavailable and a recovery branch is explicitly authorized.
 
-If recovery separation is necessary, classify all outputs `DERIVED_REPAIR_ONLY_V2` with new hashes, model/version, and no implication that they reproduce the first repair package.
+If recovery separation becomes necessary, classify all outputs `DERIVED_REPAIR_ONLY`, record a new derivation generation/version, preserve separate hashes, and state that they do not reproduce the original repair package.
 
 ## 9. Audio QC
 
@@ -232,17 +241,17 @@ Each completed source-backed track must pass:
 - file decodes successfully;
 - expected duration within documented tolerance;
 - 48 kHz / 24-bit WAV output verified;
-- FLAC decodes and PCM hash matches its WAV source after canonical decode comparison;
+- FLAC decodes and PCM content matches its WAV source after canonical decode comparison;
 - 320 kbps MP3 bitrate verified;
 - no accidental truncation;
 - no digital full-scale clipping introduced by this mastering pass;
 - stereo channel consistency/phase sanity where applicable;
-- audible bass reduction and vocal/music integration evaluated against source;
+- bass reduction and vocal/music integration evaluated against source;
 - provenance sidecar present;
 - checksum manifest present;
 - source limitation statement present.
 
-QC can pass technical integrity while still flagging subjective concerns for human master selection.
+Technical QC can pass while subjective master selection remains `COMPLETE_PENDING_HUMAN_APPROVAL`.
 
 ## 10. Visual system
 
@@ -281,7 +290,7 @@ For each track:
 - provenance record identifying reference assets and generation/edit lineage,
 - visual-QA record.
 
-The album cover establishes the era identity. Single covers must look related without being simple recolors.
+The album cover establishes the Era One identity. Single covers must look related without being simple recolors. Generated cover candidates remain `CANDIDATE` until approved.
 
 ## 11. Video system
 
@@ -314,7 +323,9 @@ Every audio, art, and video deliverable receives a sidecar with, where applicabl
 - asset ID,
 - filename,
 - track ID,
-- asset state,
+- Canon asset state,
+- catalog state,
+- evidence state,
 - parent asset(s),
 - SHA-256,
 - source hash,
@@ -333,24 +344,24 @@ Every audio, art, and video deliverable receives a sidecar with, where applicabl
 
 ## 13. Album manifest
 
-`ALBUM_MANIFEST.json` is the machine-readable source of package completeness. It contains an entry for every required deliverable and one of:
+`ALBUM_MANIFEST.json` is the machine-readable source of package completeness. Every expected deliverable receives one of:
 
 - `present_verified`
 - `present_needs_human_approval`
 - `blocked_source_missing`
 - `not_applicable`
 
-The album is not declared complete while required entries remain `blocked_source_missing`.
+The album cannot be marked `VERIFIED_COMPLETE` while a required deliverable remains `blocked_source_missing`.
 
 ## 14. Error handling / fail-closed behavior
 
 - Unknown source lineage → do not promote.
 - Hash mismatch → quarantine asset and stop that branch.
 - Corrupt media → retry only from verified parent.
-- Missing source → mark blocked; do not generate substitute audio unless recovery branch is explicitly authorized.
+- Missing source → mark blocked; do not generate substitute audio unless recovery is explicitly authorized.
 - Visual identity drift → reject frame; preserve accepted references.
-- Rights unknown → asset may remain internal candidate but cannot advance to release-ready.
-- Missing human approval → package may reach `COMPLETE_PENDING_HUMAN_APPROVAL`, never `RELEASE_READY`.
+- Rights unknown → asset may remain an internal `CANDIDATE` but cannot advance to `RELEASE_READY`.
+- Missing human approval → package may reach `COMPLETE_PENDING_HUMAN_APPROVAL`, never public-release authorization.
 
 ## 15. Implementation phases
 
@@ -379,7 +390,7 @@ The album is not declared complete while required entries remain `blocked_source
 
 ### Phase D — Tracks 04–10 audio
 
-Only after payload is surfaced or explicit recovery separation is approved.
+Proceed only after the original repair payload is surfaced or an explicit recovery-separation branch is authorized.
 
 ### Phase E — Artwork system
 
@@ -419,7 +430,7 @@ Only after payload is surfaced or explicit recovery separation is approved.
 - MP3 bitrate test;
 - image-dimension test;
 - video codec/FPS/duration test;
-- filename and asset-state linting;
+- filename and state linting;
 - duplicate-content hash detection;
 - native/derived terminology lint.
 
@@ -437,10 +448,10 @@ Only after payload is surfaced or explicit recovery separation is approved.
 
 The implementation is complete only when:
 
-1. all ten track records and expected directories/manifests exist;
+1. all ten track records and expected manifest entries exist;
 2. every actual media file has SHA-256 provenance;
 3. no derived asset is labelled native;
-4. source-backed tracks have verified 24/48 WAV, FLAC, and 320 MP3 masters;
+4. every source-backed track has verified 24/48 WAV, FLAC, and 320 MP3 master exports;
 5. derived alternates are present where source material exists and are correctly labelled;
 6. artwork has the required three formats and passes continuity review;
 7. required video deliverables decode and meet technical requirements;
@@ -448,13 +459,15 @@ The implementation is complete only when:
 9. blocked source gaps are explicit, not hidden;
 10. all package checksums verify from a clean read;
 11. the future `NATIVE_STEM_MASTER` replacement map is documented;
-12. release status remains blocked until all applicable human approvals and rights gates are recorded.
+12. `RELEASE_READY` is not assigned until all applicable human approvals and rights gates are recorded.
+
+If tracks 4–10 remain source-blocked, the project state is `BLOCKED`, even if all reversible work for tracks 1–3 and the campaign system is complete.
 
 ## 18. Completion-state semantics
 
 - `VERIFIED_COMPLETE`: all acceptance criteria and required approvals satisfied.
 - `COMPLETE_PENDING_HUMAN_APPROVAL`: technical/package work complete, consequential approval pending.
-- `BLOCKED`: required source, right, or approval prevents progress.
+- `BLOCKED`: required source, right, or approval prevents completion.
 - `UNVERIFIED`: evidence cannot establish the claim.
 
 No planned or attempted action may be described as complete.
