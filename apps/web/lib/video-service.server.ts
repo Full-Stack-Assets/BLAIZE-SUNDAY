@@ -4,11 +4,13 @@ import {
   type VideoRunRecord
 } from "@songforge/video";
 import { createNodeFfprobeInspector } from "./ffprobe.server";
+import { NodeWhisperAlignmentProvider } from "./whisper-alignment.server";
 
 export const videoRunRepository = new PrismaVideoRunRepository();
 export const videoRunService = new VideoRunService(
   videoRunRepository,
-  createNodeFfprobeInspector()
+  createNodeFfprobeInspector(),
+  new NodeWhisperAlignmentProvider()
 );
 
 export function executionPayloadFromRun(run: VideoRunRecord) {
