@@ -80,7 +80,7 @@ jobs:
       - name: Verify production container runtime
         run: |
           docker run --rm --entrypoint sh songforge-web-ci -c \
-            'test -f /app/apps/web/server.js && command -v ffprobe'
+            'test -f /app/apps/web/server.js && command -v ffprobe && command -v whisper-cli && test -s /models/ggml-base.en.bin'
 
       - name: Smoke production container
         run: |
