@@ -2,6 +2,8 @@ import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { apiStatusForCode } from "./api-error-status.ts";
+
 export class ApiRequestError extends Error {
   readonly code: string;
   readonly status: number;
@@ -63,37 +65,14 @@ export function requiredString(
 }
 
 export function apiError(error: unknown) {
-  const code = error instanceof ApiRequestError ? error.code : error instanceof Error ? error.message : "UNKNOWN_ERROR";
+  const code = error instanceof ApiRequestError
+    ? error.code
+    : error instanceof Error
+      ? error.message
+      : "UNKNOWN_ERROR";
   const status = error instanceof ApiRequestError
     ? error.status
-    : [
-          "RELEASE_NOT_FOUND",
-          "APPROVAL_NOT_FOUND",
-          "ACTION_PACKAGE_NOT_FOUND",
-          "ARTIST_NOT_FOUND",
-          "WORKFLOW_NOT_FOUND"
-        ].includes(code)
-      ? 404
-      : [
-          "APPROVAL_ALREADY_RESOLVED",
-          "APPROVAL_EXPIRED",
-          "PAYLOAD_MISMATCH",
-          "INVALID_RELEASE_TRANSITION",
-          "SUBMISSION_NOT_AUTHORIZED",
-          "REVISION_EVIDENCE_REQUIRED"
-        ].includes(code)
-        ? 409
-        : [
-            "EXTERNAL_CONFIRMATION_REQUIRED",
-            "VERIFIED_PLATFORM_URL_REQUIRED",
-            "VALID_SCHEDULE_DATE_REQUIRED",
-            "PROVIDER_MISMATCH",
-            "RELEASE_PACKAGE_INCOMPLETE",
-            "RELEASE_NOT_PREPARED",
-            "LAB_RELEASE_SERVICE_UNAVAILABLE"
-          ].includes(code)
-          ? code === "LAB_RELEASE_SERVICE_UNAVAILABLE" ? 503 : 400
-          : 500;
+    : apiStatusForCode(code);
 
   return NextResponse.json(
     {

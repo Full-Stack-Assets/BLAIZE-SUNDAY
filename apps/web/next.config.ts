@@ -4,6 +4,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   serverExternalPackages: ["bullmq", "ioredis"],
   transpilePackages: [
     "@songforge/agents",
@@ -15,6 +16,7 @@ const nextConfig: NextConfig = {
     "@songforge/release",
     "@songforge/shared",
     "@songforge/storage",
+    "@songforge/video",
     "@songforge/voice"
   ]
 };

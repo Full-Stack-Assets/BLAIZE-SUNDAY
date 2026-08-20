@@ -20,6 +20,7 @@
     "@songforge/policy": "workspace:*",
     "@songforge/release": "workspace:*",
     "@songforge/shared": "workspace:*",
+    "@songforge/video": "workspace:*",
     "@songforge/voice": "workspace:*",
     "next": "^15.1.0",
     "react": "^19.0.0",

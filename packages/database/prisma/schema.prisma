@@ -267,8 +267,8 @@ enum DistributionStatus {
 }
 
 model ReleaseMetadata {
-  id           String      @id @default(uuid())
-  projectId    String      @unique
+  id           String   @id @default(uuid())
+  projectId    String   @unique
   title        String
   artistName   String
   version      String?
@@ -284,26 +284,26 @@ model ReleaseMetadata {
   youtubeTitle String?
   youtubeDesc  String?
   dspMetadata  Json
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model RightsRecord {
-  id                  String      @id @default(uuid())
-  projectId           String      @unique
+  id                  String   @id @default(uuid())
+  projectId           String   @unique
   ownership           Json
-  ownershipConfirmed  Boolean     @default(false)
+  ownershipConfirmed  Boolean  @default(false)
   contributors        Json
   licenses            Json
   aiGenerationRecords Json
   provenanceManifest  Json
-  provenanceComplete  Boolean     @default(false)
+  provenanceComplete  Boolean  @default(false)
   rightsWarnings      Json?
-  approved            Boolean     @default(false)
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  approved            Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   project SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
@@ -350,9 +350,9 @@ model RevisionRequest {
   createdAt     DateTime       @default(now())
   completedAt   DateTime?
 
-  approval Approval   @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  approval Approval    @relation(fields: [approvalId], references: [id], onDelete: Cascade)
   project  SongProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  release  Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  release  Release     @relation(fields: [releaseId], references: [id], onDelete: Cascade)
 
   @@index([releaseId, status])
 }
@@ -413,20 +413,20 @@ model ExternalActionReceipt {
 }
 
 model Agent {
-  id                    String   @id
-  name                  String
-  category              String
-  description           String
-  roleId                String   @unique
-  riskTier              String   @default("moderate")
-  implementationStatus  String   @default("UNIMPLEMENTED")
-  active                Boolean  @default(true)
-  autonomyLevel         String
-  skills                Json?
-  integrations          Json?
-  runbook               Json
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id
+  name                 String
+  category             String
+  description          String
+  roleId               String   @unique
+  riskTier             String   @default("moderate")
+  implementationStatus String   @default("UNIMPLEMENTED")
+  active               Boolean  @default(true)
+  autonomyLevel        String
+  skills               Json?
+  integrations         Json?
+  runbook              Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model AgentRun {
@@ -509,16 +509,16 @@ model RevenueEvent {
 }
 
 model WorkflowRun {
-  id              String   @id @default(uuid())
-  artistId        String
-  projectId       String?
-  command         String
-  idempotencyKey  String   @unique
-  status          String
-  mode            String
-  queue           String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid())
+  artistId       String
+  projectId      String?
+  command        String
+  idempotencyKey String   @unique
+  status         String
+  mode           String
+  queue          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   artist  Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
   project SongProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -528,14 +528,14 @@ model WorkflowRun {
 }
 
 model WorkflowStep {
-  id            String   @id @default(uuid())
-  workflowId    String
-  roleId        String
-  status        String
-  envelope      Json?
-  error         String?
-  startedAt     DateTime @default(now())
-  completedAt   DateTime?
+  id          String   @id @default(uuid())
+  workflowId  String
+  roleId      String
+  status      String
+  envelope    Json?
+  error       String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
 
   workflow WorkflowRun @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
@@ -556,4 +556,94 @@ model IdempotencyKey {
   command   String
   resource  String
   createdAt DateTime @default(now())
+}
+
+enum VideoGenerationRunStatus {
+  PLANNED
+  AWAITING_EXTERNAL_EXECUTION
+  PENDING
+  COMPLETED
+  GENERATED
+  CAPTIONS_REQUIRED
+  QC_FAILED
+  NEEDS_REVISION
+  VERIFIED
+  FAILED
+}
+
+enum VideoGenerationMutation {
+  ROOT
+  REGENERATE
+  MORE_CINEMATIC
+  MORE_EXPLANATORY
+  SHORTER
+  LONGER
+}
+
+enum VideoCaptionSource {
+  PROVIDER_SIDECAR
+  LOCAL_ALIGNMENT
+  MANUAL_IMPORT
+}
+
+model VideoGenerationRun {
+  id                       String                   @id @default(uuid())
+  lineageKey               String
+  version                  Int
+  parentRunId              String?
+  title                    String
+  topic                    String
+  provider                 String                   @default("WISEBASE")
+  connectorMode            String                   @default("CONNECTOR_MEDIATED")
+  mutation                 VideoGenerationMutation @default(ROOT)
+  brief                    Json
+  briefHash                String
+  compiledConcept          String
+  compiledExplanation      String
+  promptHash               String
+  targetDurationSeconds    Int
+  durationTolerancePercent Float                    @default(15)
+  status                   VideoGenerationRunStatus @default(PLANNED)
+  externalTaskId           String?                  @unique
+  externalStatus           String?
+  videoUrl                 String?
+  providerMetrics          Json?
+  providerError            Json?
+  durationSeconds          Float?
+  width                    Int?
+  height                   Int?
+  fps                      Float?
+  captionStatus            String                   @default("MISSING")
+  qc                       Json?
+  createdAt                DateTime                 @default(now())
+  completedAt              DateTime?
+
+  parent   VideoGenerationRun?  @relation("VideoRunLineage", fields: [parentRunId], references: [id], onDelete: SetNull)
+  children VideoGenerationRun[] @relation("VideoRunLineage")
+  captions VideoCaptionAsset[]
+
+  @@unique([lineageKey, version])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model VideoCaptionAsset {
+  id              String             @id @default(uuid())
+  runId           String
+  version         Int
+  locale          String
+  source          VideoCaptionSource
+  format          String
+  content         String             @db.Text
+  contentHash     String
+  cueCount        Int
+  startSeconds    Float
+  endSeconds      Float
+  sourceMediaHash String?
+  createdAt       DateTime           @default(now())
+
+  run VideoGenerationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, version, format])
+  @@index([runId, createdAt])
 }

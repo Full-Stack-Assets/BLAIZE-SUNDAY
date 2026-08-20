@@ -12,10 +12,12 @@ import {
   Music2,
   FolderKanban,
   Sparkles,
+  Clapperboard,
 } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Lab", icon: PenLine },
+  { href: "/video-lab", label: "Video", icon: Clapperboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/pipeline", label: "Pipeline", icon: Layers },
   { href: "/approvals", label: "Approvals", icon: CheckCircle2 },
@@ -25,23 +27,24 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const videoFactory = pathname.startsWith("/video-lab");
+  const HomeIcon = videoFactory ? Clapperboard : Music2;
 
   return (
     <div className="flex flex-col min-h-dvh">
-      {/* Top bar — minimal identity */}
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-void/90 backdrop-blur-md">
         <div className="flex items-center justify-between h-12 px-4 max-w-5xl mx-auto">
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href={videoFactory ? "/video-lab" : "/"} className="flex items-center gap-2.5 group">
             <div className="w-6 h-6 rounded-sm bg-accent/15 border border-accent/30 flex items-center justify-center">
-              <Music2 className="w-3.5 h-3.5 text-accent" strokeWidth={2.5} />
+              <HomeIcon className="w-3.5 h-3.5 text-accent" strokeWidth={2.5} />
             </div>
             <span className="text-[13px] font-medium tracking-tight text-bone group-hover:text-accent transition-colors">
-              Songforge
+              {videoFactory ? "Video Factory" : "Songforge"}
             </span>
           </Link>
           <div className="flex items-center gap-1">
             <span className="text-[10px] uppercase tracking-[0.14em] text-ash/50 hidden sm:inline">
-              BLAIZE SUNDAY
+              {videoFactory ? "WISEBASE · CONNECTOR-MEDIATED" : "BLAIZE SUNDAY"}
             </span>
             <Link
               href="/settings"
@@ -54,14 +57,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 pb-24 pt-4">
         {children}
       </main>
 
-      {/* Bottom nav — mobile-first, always present */}
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800/80 bg-void/95 backdrop-blur-md safe-bottom">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-2">
+        <div className="flex items-center justify-around h-14 max-w-xl mx-auto px-2">
           {nav.map((item) => {
             const active =
               item.href === "/"
