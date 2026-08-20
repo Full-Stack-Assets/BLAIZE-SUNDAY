@@ -1,0 +1,41 @@
+name: Harvest D1 singing run
+
+on:
+  push:
+    branches:
+      - voice/elevenlabs-design-adapter
+    paths:
+      - ".github/harvest-d1-singing-trigger"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: voice/elevenlabs-design-adapter
+      - name: Find latest successful D1 singing run and artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p .github/receipts
+          runs=$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/elevenlabs-d1-singing-continuity.yml/runs?branch=voice%2Felevenlabs-design-adapter&event=push&per_page=20")
+          run_id=$(echo "$runs" | jq -r '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n1)
+          test -n "$run_id" && test "$run_id" != "null"
+          artifacts=$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts")
+          artifact_id=$(echo "$artifacts" | jq -r '.artifacts[] | select(.name=="sunday-after-midnight-d1-singing-continuity") | .id' | head -n1)
+          test -n "$artifact_id" && test "$artifact_id" != "null"
+          jq -n --argjson run_id "$run_id" --argjson artifact_id "$artifact_id" '{run_id:$run_id,artifact_id:$artifact_id,status:"completed",conclusion:"success"}' > .github/receipts/elevenlabs-d1-singing-run-index.json
+      - name: Commit receipt
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/receipts/elevenlabs-d1-singing-run-index.json
+          git commit -m "evidence: index D1 singing artifact" || exit 0
+          git push origin HEAD:voice/elevenlabs-design-adapter

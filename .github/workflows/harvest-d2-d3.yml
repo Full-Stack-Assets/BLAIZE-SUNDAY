@@ -1,0 +1,39 @@
+name: Harvest D2 D3 Comparator Run
+on:
+  push:
+    branches: [voice/elevenlabs-design-adapter]
+    paths: [.github/workflows/harvest-d2-d3.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          target=2d2de595a46f61b0d783481fc59447d953721f3b
+          for i in $(seq 1 30); do
+            data=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=$target&event=push&per_page=20")
+            row=$(echo "$data" | jq -c '.workflow_runs[] | select(.name=="Persist D2 D3 G2 Comparators")' | head -1)
+            if [ -n "$row" ]; then
+              status=$(echo "$row"|jq -r .status); id=$(echo "$row"|jq -r .id)
+              if [ "$status" = completed ]; then
+                conclusion=$(echo "$row"|jq -r .conclusion)
+                arts=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$id/artifacts")
+                aid=$(echo "$arts"|jq -r '.artifacts[0].id // empty')
+                mkdir -p .github/receipts
+                jq -n --argjson run_id "$id" --arg head_sha "$target" --arg status "$status" --arg conclusion "$conclusion" --arg artifact_id "$aid" '{run_id:$run_id,head_sha:$head_sha,status:$status,conclusion:$conclusion,artifact_id:$artifact_id}' > .github/receipts/elevenlabs-d2-d3-last-run.json
+                git config user.name github-actions[bot]; git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+                git add .github/receipts/elevenlabs-d2-d3-last-run.json
+                git commit -m 'receipt: record D2 D3 comparator persistence run'
+                git push
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          exit 1

@@ -1,0 +1,88 @@
+name: ElevenLabs D1 Singing Continuity English STS
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/elevenlabs-d1-singing-english-sts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  convert:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      TARGET_VOICE_ID: j9nOYxfwt3sxAi32BnNI
+      SOURCE_URL: https://cdn-editing-temp.picsart.com/editing-temp/64e7a442-b745-4706-af23-eb943067d53a.mp3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify secret
+        shell: bash
+        run: test -n "$ELEVENLABS_API_KEY"
+      - name: Install audio verification tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffprobe -version | head -n 1
+      - name: Fetch source performance
+        shell: bash
+        run: |
+          mkdir -p artifacts/d1-singing-english
+          curl --fail --location --retry 3 "$SOURCE_URL" -o artifacts/d1-singing-english/source-singing.mp3
+          test -s artifacts/d1-singing-english/source-singing.mp3
+      - name: Convert sung performance to D1 with English STS
+        shell: bash
+        run: |
+          curl --fail-with-body --location \
+            -X POST "https://api.elevenlabs.io/v1/speech-to-speech/$TARGET_VOICE_ID?output_format=mp3_44100_128" \
+            -H "xi-api-key: $ELEVENLABS_API_KEY" \
+            -F "audio=@artifacts/d1-singing-english/source-singing.mp3" \
+            -F "model_id=eleven_english_sts_v2" \
+            -o artifacts/d1-singing-english/D1_SINGING_ENGLISH_STS.mp3
+          test -s artifacts/d1-singing-english/D1_SINGING_ENGLISH_STS.mp3
+      - name: Verify audio integrity
+        shell: bash
+        run: |
+          ffprobe -v error -show_entries format=duration,size -of json artifacts/d1-singing-english/source-singing.mp3 > artifacts/d1-singing-english/source-ffprobe.json
+          ffprobe -v error -show_entries format=duration,size -of json artifacts/d1-singing-english/D1_SINGING_ENGLISH_STS.mp3 > artifacts/d1-singing-english/output-ffprobe.json
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          root=Path('artifacts/d1-singing-english')
+          src=root/'source-singing.mp3'; out=root/'D1_SINGING_ENGLISH_STS.mp3'
+          def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+          src_probe=json.loads((root/'source-ffprobe.json').read_text())
+          out_probe=json.loads((root/'output-ffprobe.json').read_text())
+          sd=float(src_probe['format']['duration']); od=float(out_probe['format']['duration'])
+          ratio=od/sd if sd else 0
+          receipt={
+            'voiceIdentity':'SUNDAY AFTER MIDNIGHT',
+            'candidate':'D1',
+            'targetVoiceId':'j9nOYxfwt3sxAi32BnNI',
+            'provider':'elevenlabs',
+            'operation':'voice_changer_singing_continuity_probe_english_sts',
+            'modelId':'eleven_english_sts_v2',
+            'source':{'sha256':sha(src),'bytes':src.stat().st_size,'durationSeconds':sd},
+            'output':{'file':out.name,'sha256':sha(out),'bytes':out.stat().st_size,'durationSeconds':od,'durationRatio':ratio},
+            'integrityGate':{'minDurationRatio':0.97,'maxDurationRatio':1.03,'passed':0.97 <= ratio <= 1.03},
+            'claimState':'GENERATED_NOT_YET_CERTIFIED',
+            'humanReviewRequired':True,
+            'g2Locked':False
+          }
+          (root/'receipt.json').write_text(json.dumps(receipt,indent=2))
+          if not receipt['integrityGate']['passed']:
+              raise SystemExit(f'duration continuity failed: ratio={ratio}')
+          PY
+      - name: Upload private artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunday-after-midnight-d1-singing-english-sts
+          path: artifacts/d1-singing-english
+          retention-days: 7
+          if-no-files-found: error

@@ -1,0 +1,5 @@
+authorized_by=Nic Albertson / Human Authority
+scope=D2,D3 retained G2 comparators only
+production=false
+retain=true
+triggered_at=2026-08-19
