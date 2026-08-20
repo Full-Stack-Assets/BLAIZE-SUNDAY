@@ -7,6 +7,7 @@
 | Category | State | Release consequence |
 |---|---|---|
 | Repository software/documentation rights | VERIFIED | Not blocking music release by itself |
+| Contributor assignment / work-for-hire evidence | UNVERIFIED | RELEASE BLOCKING until ownership chain is documented or confirmed not applicable |
 | Repair/source lineage | VERIFIED | Proves derivation history, not underlying authorship/license |
 | Underlying source-mix music rights | UNKNOWN | RELEASE BLOCKING |
 | Writer/producer ownership and splits | UNKNOWN | RELEASE BLOCKING |
@@ -21,7 +22,7 @@
 
 ## Human Authority confirmations required
 
-Confirm, for each proof-cycle track being released: songwriter(s), producer(s), ownership shares, source/provider license basis, sample/system-sound clearance, and whether D1 is present in the final master and commercially authorized for that exact use. Also confirm whether final artwork/videos will be de-branded or whether Bulls/Goyard commercial clearance exists.
+Confirm, for each proof-cycle track being released: songwriter(s), producer(s), ownership shares, source/provider license basis, sample/system-sound clearance, whether any contributor assignment/work-for-hire instrument is required and, if so, that it is executed, and whether D1 is present in the final master and commercially authorized for that exact use. Also confirm whether final artwork/videos will be de-branded or whether Bulls/Goyard commercial clearance exists.
 
 **Decision:** `PENDING_EVIDENCE`  
 **Required response:** provide the missing ownership/rights facts or explicitly choose the de-branded route where applicable. R-1 cannot be self-approved by the project runtime.
