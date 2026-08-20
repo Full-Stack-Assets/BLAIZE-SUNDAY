@@ -1,4 +1,5 @@
 import { prisma } from "./client.ts";
+import { buildD1VoiceProfileSeed } from "./voice-seed.ts";
 
 const CANON = {
   version: "BLAIZE_CANON_v4.0",
@@ -214,40 +215,17 @@ async function main() {
     create: { artistId: artist.id, version: CANON.version, canon: CANON }
   });
 
+  const existingVoiceProfile = await prisma.voiceProfile.findUnique({
+    where: { artistId: artist.id }
+  });
+  const d1VoiceProfile = buildD1VoiceProfileSeed(existingVoiceProfile?.approvedReferenceAssets);
+
   await prisma.voiceProfile.upsert({
     where: { artistId: artist.id },
-    update: {
-      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
-      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
-      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
-      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
-      approvedReferenceAssets: [
-        {
-          candidate: "D1",
-          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
-          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
-          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
-          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
-          referenceAudioUsed: false
-        }
-      ]
-    },
+    update: d1VoiceProfile,
     create: {
       artistId: artist.id,
-      canonicalVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.voiceIdentityId,
-      provider: SUNDAY_AFTER_MIDNIGHT_D1.provider,
-      verificationStatus: SUNDAY_AFTER_MIDNIGHT_D1.status,
-      vocalSettings: SUNDAY_AFTER_MIDNIGHT_D1,
-      approvedReferenceAssets: [
-        {
-          candidate: "D1",
-          providerVoiceId: SUNDAY_AFTER_MIDNIGHT_D1.providerVoiceId,
-          sourceDesignRunId: SUNDAY_AFTER_MIDNIGHT_D1.sourceDesignRunId,
-          persistenceRunId: SUNDAY_AFTER_MIDNIGHT_D1.persistenceRunId,
-          approvalId: SUNDAY_AFTER_MIDNIGHT_D1.approvalId,
-          referenceAudioUsed: false
-        }
-      ]
+      ...d1VoiceProfile
     }
   });
 
