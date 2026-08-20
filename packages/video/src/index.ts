@@ -6,3 +6,4 @@ export * from "./repository.ts";
 export * from "./prisma-repository.ts";
 export * from "./service.ts";
 export * from "./technical-inspection.ts";
+export * from "./whisper-alignment.ts";
