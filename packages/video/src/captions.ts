@@ -9,9 +9,17 @@ export interface CaptionTimeline {
   cues: CaptionCue[];
 }
 
+export interface CaptionAlignmentResult {
+  timeline: CaptionTimeline;
+  sourceMediaHash: string;
+}
+
 export interface LocalAlignmentProvider {
   health(): Promise<"CONFIGURED" | "UNCONFIGURED">;
-  align(input: { mediaPath: string; locale: string }): Promise<CaptionTimeline>;
+  align(input: {
+    mediaPath: string;
+    locale: string;
+  }): Promise<CaptionAlignmentResult>;
 }
 
 function parseTimestamp(value: string): number {
@@ -126,7 +134,10 @@ export class UnconfiguredLocalAlignmentProvider implements LocalAlignmentProvide
     return "UNCONFIGURED";
   }
 
-  async align(_input: { mediaPath: string; locale: string }): Promise<CaptionTimeline> {
+  async align(_input: {
+    mediaPath: string;
+    locale: string;
+  }): Promise<CaptionAlignmentResult> {
     throw new Error("LOCAL_ALIGNMENT_UNCONFIGURED");
   }
 }
