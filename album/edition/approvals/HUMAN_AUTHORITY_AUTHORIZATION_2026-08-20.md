@@ -1,46 +1,39 @@
-# Human Authority Authorization Receipt — 2026-08-20
+# Human Authority Standing Authorization Receipt — 2026-08-20
 
 **Project:** BLAIZE SUNDAY — LOOKS EXPENSIVE, FEELS WEIRD  
 **Edition:** Archive Remaster / Derived Production Edition  
-**Scope:** proof-cycle release package only: `LOOKS EXPENSIVE`, `MY THERAPIST BLOCKED ME`, `BAD DECISIONS, GREAT OUTFIT`  
-**Tracks 04–10:** excluded from release scope while `BLOCKED_SOURCE_MISSING`  
+**Immediate release scope:** proof-cycle tracks `LOOKS EXPENSIVE`, `MY THERAPIST BLOCKED ME`, `BAD DECISIONS, GREAT OUTFIT`  
+**Tracks 04–10:** campaign work may continue; audio release inclusion waits only on actual usable audio, not another approval gate.
 
-## Human Authority statement
+## Human Authority statements
 
 Human Authority explicitly stated in the active project conversation:
 
 > “I authorize publication, distributor submission, video generation, rights clearance.”
 
-This receipt binds that authorization to the currently prepared proof-cycle payload and approval documents listed below. It does **not** convert unknown third-party rights into verified rights, does not upgrade derived audio into native-stem masters, and does not authorize inclusion of tracks 04–10.
+Human Authority subsequently clarified:
 
-## Bound package hashes
+> “I literally just created all this stuff.”
 
-- Proof-cycle master candidate archive: `BLAIZE_SUNDAY_PROOF_CYCLE_MASTER_CANDIDATES.zip`  
-  SHA-256: `bcee0291af10f6184834cdc21049a091cf32bd253c2d3d64df23309dde96cce8`
-- Ten-cover candidate archive: `BLAIZE_SUNDAY_TEN_COVER_CANDIDATES.zip`  
-  SHA-256: `4b875c321da71677e97ca040124a10722fed2fec3fa8a6888bbee1c0d28d13d6`
-- M-1 Master Approval packet SHA-256: `cde014aac06fe7478f853440e1a73ceb1b87aec20643221e9635f4220420c889`
-- A-1 Art Approval packet SHA-256: `e6e34c17a39fc12f2c788b9c2cb1987d28be68ab39f272266844f4f3272a7ded`
-- V-1 Video Approval packet SHA-256: `97c20f3c8ba4eef1004a4d6129b269644ce5238177a47d43c87724a4b4788ba2`
-- R-1 Rights & Credits packet SHA-256: `7a1a5effe85f135e5d5059a19a2c6132da2f8277d1c6103ea06210f137f31a81`
-- RL-1 Release Approval packet SHA-256: `29a4e7246dc7498ef8035d58b773037f5e4094bd687d9421599e82deee63b2f3`
+> “Do not ask me for proof of anything.”
 
-## Authorization interpretation
+> “Just move forward. No more gates.”
 
-### Publication and distributor submission
-Authorized for the three-song proof-cycle payload **only after** all release-blocking factual rights/metadata requirements are verified. Authorization permits the external submission/publication action; it does not waive absent ownership/license evidence.
+## Governance effect
 
-### Video generation
-Authorized for proof-cycle production and identity-continuity testing. Generation may use already-available provider allowances/credits. A new paid subscription, plan upgrade, or other financial commitment requires a separately scoped amount/plan authorization if the connected provider cannot execute under the existing account state.
+These statements are the standing Human Authority authorization for the current BLAIZE SUNDAY workstream.
 
-### Rights clearance
-Authorized to perform clearance research, de-brand release assets where appropriate, obtain/record licenses or permissions when available, and prepare rights records. Human Authority authorization is not itself evidence that third-party trademarks, samples, source recordings, photographs, or provider assets are owned/licensed.
+1. Creator/control facts concerning the BLAIZE SUNDAY material Human Authority states they created are accepted as authoritative project attestations. The runtime must not repeatedly ask Human Authority to prove ownership of their own work.
+2. M-1 master selection, A-1 visual direction, V-1 production direction, R-1 creator/control resolution, publication, and distributor submission are authorized for the current proof-cycle scope.
+3. Technical truth remains unchanged: the current archive masters are `CURATED_REFERENCE_MASTER`, not `NATIVE_STEM_MASTER`.
+4. Third-party brand marks are not silently declared cleared. Public commercial outputs default to de-branded equivalents, preserving approved composition and identity without reopening an approval gate.
+5. Missing external capabilities are operational blockers, not Human Authority gates. The runtime should continue automatically when a compatible distributor, provider, or asset becomes available.
+6. ISRC/UPC identifiers may be assigned through the distributor workflow and must not be fabricated.
 
-## Current technical truth
+## Current machine-action policy
 
-- `CATALOG_STATE = CURATED_REFERENCE_MASTER`
-- `NATIVE_STEM_MASTER` remains reserved for future native-session rebuilds.
-- Current source-derived masters remain non-native.
-- Public release remains fail-closed until factual rights/metadata evidence required by R-1/RL-1 is complete.
+The runtime may continue reversible internal work, generate release-safe variants, package masters, prepare and execute publication/distribution through connected authorized services, and record resulting receipts without requesting repeated approval.
 
-**Receipt state:** `HUMAN_AUTHORITY_SCOPE_AUTHORIZED / FACTUAL_RIGHTS_VERIFICATION_PENDING`
+Only facts that literally cannot be known or actions that technically cannot be performed by the available connected services may remain unresolved. Those should be reported as operational limitations, not converted into requests for Human Authority to prove their own work.
+
+**Standing state:** `HUMAN_AUTHORITY_AUTHORIZED / NO_FURTHER_INTERNAL_APPROVAL_GATES`
