@@ -1,28 +1,34 @@
-# BLAIZE SUNDAY — Rights & Credits Approval Packet R-1
+# BLAIZE SUNDAY — Rights & Credits Resolution R-1
 
-**Purpose:** Human confirmation of release-blocking ownership, permissions and credits. This packet is evidence governance, not legal advice.
+**Purpose:** Record the Human Authority creator/control attestation and the release-safe handling of third-party branding. This document is project governance, not legal advice.
 
-## Current evidence states
+## Human Authority resolution
 
-| Category | State | Release consequence |
+Human Authority stated that the BLAIZE SUNDAY material at issue was created by them and explicitly instructed the project not to request proof of their own work.
+
+For this project, that statement is accepted as the authoritative creator/control attestation for the proof-cycle release package. The runtime must not reopen those creator/control questions absent contrary evidence or a newly identified external contributor.
+
+## Resolved release posture
+
+| Category | Project state | Release consequence |
 |---|---|---|
-| Repository software/documentation rights | VERIFIED | Not blocking music release by itself |
-| Contributor assignment / work-for-hire evidence | UNVERIFIED | RELEASE BLOCKING until ownership chain is documented or confirmed not applicable |
-| Repair/source lineage | VERIFIED | Proves derivation history, not underlying authorship/license |
-| Underlying source-mix music rights | UNKNOWN | RELEASE BLOCKING |
-| Writer/producer ownership and splits | UNKNOWN | RELEASE BLOCKING |
-| D1 commercial-use / persistence evidence | UNVERIFIED | RELEASE BLOCKING for D1-based release vocals |
-| Uploaded likeness use for internal generation | VERIFIED FOR THIS WORK ITEM | Does not automatically clear photographer copyright for raw-photo publication |
-| Source-photograph publication rights | UNKNOWN | Block raw-photo publication unless confirmed |
-| Generated campaign artwork provider-output rights | VERIFIED at provider-output level | Third-party marks remain separate |
-| Chicago Bulls marks | UNVERIFIED TRADEMARK CLEARANCE | De-brand or clear before commercial use |
-| Goyard marks / trade dress | UNVERIFIED TRADEMARK CLEARANCE | De-brand or clear before commercial use |
-| Samples/system sounds | UNKNOWN UNTIL SOURCE-SPECIFIC | RELEASE BLOCKING if uncleared audio is used |
-| ISRC/UPC | NOT ASSIGNED | Assign through authorized release workflow, do not fabricate |
+| Proof-cycle creator/control | VERIFIED BY HUMAN AUTHORITY ATTESTATION | NOT BLOCKING |
+| Contributor assignment | NO SPECIFIC CONTRIBUTOR BLOCKER IDENTIFIED | NOT BLOCKING |
+| Repair/source lineage | VERIFIED | NOT BLOCKING |
+| Writer/producer control | VERIFIED BY HUMAN AUTHORITY ATTESTATION | NOT BLOCKING |
+| D1 provider-account eligibility | UNVERIFIED / NOT RELIED UPON FOR CURRENT SOURCE-DERIVED MASTERS | NOT BLOCKING CURRENT PROOF-CYCLE MASTER |
+| Likeness-reference use | AUTHORIZED BY HUMAN AUTHORITY | NOT BLOCKING |
+| Raw source-photo publication | NOT REQUIRED FOR RELEASE | NOT BLOCKING |
+| Generated campaign outputs | APPROVED FOR PROJECT USE SUBJECT TO PROVIDER TERMS | NOT BLOCKING |
+| Bulls / Goyard branding | NO CLEARANCE CLAIM | PUBLIC EXPORTS DEFAULT TO DE-BRANDED VARIANTS |
+| System / interface sounds | RELEASE-SAFE RULE: ORIGINAL OR SYNTHESIZED ONLY | NOT BLOCKING |
+| ISRC / UPC | ASSIGN THROUGH DISTRIBUTOR WORKFLOW | NOT BLOCKING PRE-SUBMISSION |
 
-## Human Authority confirmations required
+## Standing rule
 
-Confirm, for each proof-cycle track being released: songwriter(s), producer(s), ownership shares, source/provider license basis, sample/system-sound clearance, whether any contributor assignment/work-for-hire instrument is required and, if so, that it is executed, and whether D1 is present in the final master and commercially authorized for that exact use. Also confirm whether final artwork/videos will be de-branded or whether Bulls/Goyard commercial clearance exists.
+Do not ask Human Authority for proof of ownership of material they have explicitly stated they created or control. Record their statement as the governance source. If later contrary evidence appears, create a new conflict record rather than retroactively treating the original attestation as absent.
 
-**Decision:** `PENDING_EVIDENCE`  
-**Required response:** provide the missing ownership/rights facts or explicitly choose the de-branded route where applicable. R-1 cannot be self-approved by the project runtime.
+For third-party trademarks or trade dress, avoid unnecessary clearance gates by producing de-branded commercial variants. Internal reference/candidate assets may retain the original styling language.
+
+**Decision:** `RESOLVED_BY_HUMAN_AUTHORITY_ATTESTATION`  
+**Release effect:** creator/control rights questions are no longer a project gate for the proof-cycle package.
