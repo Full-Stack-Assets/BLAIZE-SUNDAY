@@ -27,7 +27,9 @@ test("persist suite runs against Postgres when DATABASE_URL is reachable", async
     }
   });
 
-  const { executeCreateNextRelease } = await import("./persist.ts");
+  const { executeCreateNextRelease, markWorkflowEnqueued, queueCreateNextRelease } = await import(
+    "./persist.ts"
+  );
   const key = `test-${Date.now()}`;
   const first = await executeCreateNextRelease({ actor: "test", idempotencyKey: key });
   const second = await executeCreateNextRelease({ actor: "test", idempotencyKey: key });
@@ -35,6 +37,24 @@ test("persist suite runs against Postgres when DATABASE_URL is reachable", async
   assert.equal(second.created, false);
   assert.equal(first.workflow.id, second.workflow.id);
   assert.ok(first.workflow.projectId);
-  assert.equal(first.workflow.status, "COMPLETED");
+  assert.equal(first.workflow.status, "BLOCKED");
+
+  const concurrentKey = `concurrent-test-${Date.now()}`;
+  const [left, right] = await Promise.all([
+    executeCreateNextRelease({ actor: "test-left", idempotencyKey: concurrentKey }),
+    executeCreateNextRelease({ actor: "test-right", idempotencyKey: concurrentKey })
+  ]);
+  assert.equal(left.workflow.id, right.workflow.id);
+  assert.equal(Number(left.created) + Number(right.created), 1);
+
+  const queueKey = `queue-test-${Date.now()}`;
+  const reserved = await queueCreateNextRelease({ actor: "test", idempotencyKey: queueKey });
+  assert.equal(reserved.created, true);
+  assert.equal(reserved.workflow.status, "QUEUED");
+  assert.equal(reserved.workflow.queue, "BULLMQ_PENDING");
+
+  const enqueued = await markWorkflowEnqueued(reserved.workflow.id);
+  assert.equal(enqueued.queue, "BULLMQ");
+
   await prisma.$disconnect();
 });

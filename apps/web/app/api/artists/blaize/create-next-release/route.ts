@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { apiError, readJsonObject, requireApprovalActor } from "@/lib/api";
-import { executeCreateNextRelease, queueCreateNextRelease } from "@/lib/create-next-release.server";
+import {
+  executeCreateNextRelease,
+  markWorkflowEnqueued,
+  queueCreateNextRelease
+} from "@/lib/create-next-release.server";
 
 export async function POST(request: Request) {
   try {
@@ -12,18 +16,22 @@ export async function POST(request: Request) {
 
     if (process.env.REDIS_URL) {
       const queued = await queueCreateNextRelease({ actor, idempotencyKey });
-      if (queued.created) {
+      if (queued.queued) {
         const { Queue } = await import("bullmq");
         const IORedis = (await import("ioredis")).default;
         const connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
         const queue = new Queue("songforge-workflows", { connection });
-        await queue.add(
-          "create-next-release",
-          { actor, idempotencyKey: queued.workflow.idempotencyKey },
-          { jobId: queued.workflow.idempotencyKey }
-        );
-        await queue.close();
-        await connection.quit();
+        try {
+          await queue.add(
+            "create-next-release",
+            { actor, idempotencyKey: queued.workflow.idempotencyKey },
+            { jobId: queued.workflow.idempotencyKey }
+          );
+          await markWorkflowEnqueued(queued.workflow.id);
+        } finally {
+          await queue.close();
+          await connection.quit();
+        }
       }
       return NextResponse.json(
         {
@@ -31,7 +39,7 @@ export async function POST(request: Request) {
           created: queued.created,
           workflowId: queued.workflow.id,
           projectId: queued.workflow.projectId,
-          queue: "BULLMQ"
+          queue: queued.queued ? "BULLMQ" : queued.workflow.queue
         },
         { status: 202 }
       );
