@@ -17,22 +17,20 @@ test("derived repair assets cannot claim native-stem catalog state", () => {
     nativeStem: false,
     canonical: false,
   };
-
   assert.throws(() => assertValidStateCombination(asset), /DERIVED_REPAIR_ONLY/);
 });
 
-test("non-native assets cannot be marked canonical", () => {
+test("non-native assets cannot be canonical", () => {
   const asset: AlbumAssetRecord = {
-    assetId: "01-master-derived",
+    assetId: "01-master",
     trackId: "01_LOOKS_EXPENSIVE",
     filename: "01_LOOKS_EXPENSIVE_ARCHIVE_MASTER_24-48.wav",
     canonAssetState: "CANDIDATE",
     catalogState: "CURATED_REFERENCE_MASTER",
     evidenceState: "VERIFIED",
-    presence: "present_verified",
+    presence: "present_needs_human_approval",
     nativeStem: false,
     canonical: true,
   };
-
   assert.throws(() => assertValidStateCombination(asset), /non-native/);
 });
