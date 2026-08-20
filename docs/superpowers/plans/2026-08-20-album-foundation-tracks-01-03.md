@@ -66,6 +66,7 @@
 ### Task 1: Scaffold `@songforge/album` and lock state contracts
 
 **Files:**
+
 - Create: `packages/album/package.json`
 - Create: `packages/album/tsconfig.json`
 - Create: `packages/album/src/types.ts`
@@ -74,6 +75,7 @@
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Produces `CanonAssetState`, `CatalogState`, `EvidenceState`, `SongLifecycleStatus`, `ManifestPresence`, `AlbumAssetRecord`, `TrackRecord`.
 - Later tasks import these types directly from `@songforge/album` package internals.
 
@@ -82,10 +84,7 @@
 ```ts
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  assertValidStateCombination,
-  type AlbumAssetRecord,
-} from "./types.ts";
+import { assertValidStateCombination, type AlbumAssetRecord } from "./types.ts";
 
 test("derived repair assets cannot claim native-stem catalog state", () => {
   const asset: AlbumAssetRecord = {
@@ -97,7 +96,7 @@ test("derived repair assets cannot claim native-stem catalog state", () => {
     evidenceState: "VERIFIED",
     presence: "present_verified",
     nativeStem: false,
-    canonical: false,
+    canonical: false
   };
 
   assert.throws(() => assertValidStateCombination(asset), /DERIVED_REPAIR_ONLY/);
@@ -152,9 +151,12 @@ export type CanonAssetState =
   | "DERIVED_REPAIR_ONLY";
 
 export type CatalogState = "CURATED_REFERENCE_MASTER" | "NATIVE_STEM_MASTER";
-export type EvidenceState = "VERIFIED" | "UNVERIFIED" | "UNKNOWN" | "CONFLICTING" | "BLOCKED_SOURCE_MISSING";
-export type SongLifecycleStatus = "CONCEPT" | "WRITING" | "DEMO" | "SELECTED" | "QA" | "RELEASE_READY" | "PUBLISHED" | "ARCHIVED";
-export type ManifestPresence = "present_verified" | "present_needs_human_approval" | "blocked_source_missing" | "not_applicable";
+export type EvidenceState =
+  "VERIFIED" | "UNVERIFIED" | "UNKNOWN" | "CONFLICTING" | "BLOCKED_SOURCE_MISSING";
+export type SongLifecycleStatus =
+  "CONCEPT" | "WRITING" | "DEMO" | "SELECTED" | "QA" | "RELEASE_READY" | "PUBLISHED" | "ARCHIVED";
+export type ManifestPresence =
+  "present_verified" | "present_needs_human_approval" | "blocked_source_missing" | "not_applicable";
 ```
 
 `assertValidStateCombination()` must reject any `DERIVED_REPAIR_ONLY` asset with `catalogState === "NATIVE_STEM_MASTER"` and any `nativeStem === false` asset marked `canonical === true`.
@@ -200,6 +202,7 @@ git commit -m "feat(album): add album state contracts"
 ### Task 2: Encode the ten-track catalog and manifest skeleton
 
 **Files:**
+
 - Create: `packages/album/src/catalog.ts`
 - Create: `packages/album/src/catalog.test.ts`
 - Create: `packages/album/src/manifest.ts`
@@ -212,6 +215,7 @@ git commit -m "feat(album): add album state contracts"
 - Create: `album/edition/README.md`
 
 **Interfaces:**
+
 - Produces `TRACKS`, `requiredDeliverables(track)`, `buildAlbumManifest(sourceState)`, and `bootstrapAlbumTree(outputRoot)`.
 - Later tasks use manifest entries as the only package-completeness source.
 
@@ -244,16 +248,66 @@ Each catalog entry must include exact ID/title plus these signature sounds:
 
 ```ts
 export const TRACKS = [
-  { id: "01_LOOKS_EXPENSIVE", title: "LOOKS EXPENSIVE", visualMode: "Luxury Noir", signatureSound: "card-reader decline" },
-  { id: "02_MY_THERAPIST_BLOCKED_ME", title: "MY THERAPIST BLOCKED ME", visualMode: "Beautiful but Wrong", signatureSound: "customer-service hold music" },
-  { id: "03_BAD_DECISIONS_GREAT_OUTFIT", title: "BAD DECISIONS, GREAT OUTFIT", visualMode: "Flash / Motion / Flex", signatureSound: "camera autofocus motor" },
-  { id: "04_PRETTY_BOY_PROBLEMS", title: "PRETTY BOY PROBLEMS", visualMode: "Flash / Motion / Flex", signatureSound: "perfume atomizer" },
-  { id: "05_DELETE_AFTER_LISTENING", title: "DELETE AFTER LISTENING", visualMode: "Luxury Noir", signatureSound: "voice-message deletion tone" },
-  { id: "06_NO_SIGNAL", title: "NO SIGNAL", visualMode: "Beautiful but Wrong", signatureSound: "cellular dropout / modem fragments" },
-  { id: "07_2_17_AM", title: "2:17 AM", visualMode: "Luxury Noir", signatureSound: "hotel HVAC / elevator bell / unread notification" },
-  { id: "08_PARALLEL_YOU", title: "PARALLEL YOU", visualMode: "Flash / Motion / Flex", signatureSound: "reversed navigation prompts" },
-  { id: "09_ROOM_SERVICE_FOR_ONE", title: "ROOM SERVICE FOR ONE", visualMode: "Luxury Noir", signatureSound: "room-service cart / cloche / receipt printer" },
-  { id: "10_WRONG_FLOOR", title: "WRONG FLOOR", visualMode: "Beautiful but Wrong", signatureSound: "elevator ding / floor voice / vending-machine hum" }
+  {
+    id: "01_LOOKS_EXPENSIVE",
+    title: "LOOKS EXPENSIVE",
+    visualMode: "Luxury Noir",
+    signatureSound: "card-reader decline"
+  },
+  {
+    id: "02_MY_THERAPIST_BLOCKED_ME",
+    title: "MY THERAPIST BLOCKED ME",
+    visualMode: "Beautiful but Wrong",
+    signatureSound: "customer-service hold music"
+  },
+  {
+    id: "03_BAD_DECISIONS_GREAT_OUTFIT",
+    title: "BAD DECISIONS, GREAT OUTFIT",
+    visualMode: "Flash / Motion / Flex",
+    signatureSound: "camera autofocus motor"
+  },
+  {
+    id: "04_PRETTY_BOY_PROBLEMS",
+    title: "PRETTY BOY PROBLEMS",
+    visualMode: "Flash / Motion / Flex",
+    signatureSound: "perfume atomizer"
+  },
+  {
+    id: "05_DELETE_AFTER_LISTENING",
+    title: "DELETE AFTER LISTENING",
+    visualMode: "Luxury Noir",
+    signatureSound: "voice-message deletion tone"
+  },
+  {
+    id: "06_NO_SIGNAL",
+    title: "NO SIGNAL",
+    visualMode: "Beautiful but Wrong",
+    signatureSound: "cellular dropout / modem fragments"
+  },
+  {
+    id: "07_2_17_AM",
+    title: "2:17 AM",
+    visualMode: "Luxury Noir",
+    signatureSound: "hotel HVAC / elevator bell / unread notification"
+  },
+  {
+    id: "08_PARALLEL_YOU",
+    title: "PARALLEL YOU",
+    visualMode: "Flash / Motion / Flex",
+    signatureSound: "reversed navigation prompts"
+  },
+  {
+    id: "09_ROOM_SERVICE_FOR_ONE",
+    title: "ROOM SERVICE FOR ONE",
+    visualMode: "Luxury Noir",
+    signatureSound: "room-service cart / cloche / receipt printer"
+  },
+  {
+    id: "10_WRONG_FLOOR",
+    title: "WRONG FLOOR",
+    visualMode: "Beautiful but Wrong",
+    signatureSound: "elevator ding / floor voice / vending-machine hum"
+  }
 ] as const;
 ```
 
@@ -303,10 +357,12 @@ git commit -m "feat(album): encode ten-track edition manifest"
 ### Task 3: Add provenance and checksum receipts
 
 **Files:**
+
 - Create: `packages/album/src/provenance.ts`
 - Create: `packages/album/src/provenance.test.ts`
 
 **Interfaces:**
+
 - Consumes `contentHash()` from `@songforge/storage`.
 - Produces `hashFile(path)`, `writeProvenanceReceipt(record, path)`, `writeChecksumFile(entries, path)`.
 
@@ -340,21 +396,21 @@ A receipt must serialize stable JSON with at least:
 
 ```ts
 {
-  assetId,
-  trackId,
-  filename,
-  canonAssetState,
-  catalogState,
-  evidenceState,
-  parentAssets,
-  sha256,
-  sourceSha256,
-  sourceType,
-  derivationMethod,
-  nativeStem,
-  canonical,
-  limitationNotice,
-  createdAt
+  (assetId,
+    trackId,
+    filename,
+    canonAssetState,
+    catalogState,
+    evidenceState,
+    parentAssets,
+    sha256,
+    sourceSha256,
+    sourceType,
+    derivationMethod,
+    nativeStem,
+    canonical,
+    limitationNotice,
+    createdAt);
 }
 ```
 
@@ -381,10 +437,12 @@ git commit -m "feat(album): add provenance and checksum receipts"
 ### Task 4: Implement ffprobe media inspection and technical audio audit
 
 **Files:**
+
 - Create: `packages/album/src/media.ts`
 - Create: `packages/album/src/media.test.ts`
 
 **Interfaces:**
+
 - Produces `inspectMedia(path): Promise<MediaInspection>` and `assertAudioDecodes(inspection)`.
 - `MediaInspection` includes codec, durationSeconds, sampleRateHz, channels, bitDepth when known, formatName, bitRate when known.
 
@@ -397,7 +455,15 @@ import { normalizeProbe } from "./media.ts";
 
 test("normalizeProbe extracts 24-bit 48 kHz PCM properties", () => {
   const inspection = normalizeProbe({
-    streams: [{ codec_type: "audio", codec_name: "pcm_s24le", sample_rate: "48000", channels: 2, bits_per_raw_sample: "24" }],
+    streams: [
+      {
+        codec_type: "audio",
+        codec_name: "pcm_s24le",
+        sample_rate: "48000",
+        channels: 2,
+        bits_per_raw_sample: "24"
+      }
+    ],
     format: { duration: "208.091438", format_name: "wav" }
   });
   assert.equal(inspection.sampleRateHz, 48000);
@@ -447,10 +513,12 @@ git commit -m "feat(album): add media inspection and audio audit"
 ### Task 5: Implement deterministic archive-master candidate rendering
 
 **Files:**
+
 - Create: `packages/album/src/mastering.ts`
 - Create: `packages/album/src/mastering.test.ts`
 
 **Interfaces:**
+
 - Consumes `MediaInspection` and source-selection receipt.
 - Produces `renderArchiveMasterCandidate({ inputPath, outputWav, outputFlac, outputMp3, profile })`.
 - `MasteringProfile` has explicit fields; there is no implicit album-wide EQ/compression preset.
@@ -542,6 +610,7 @@ git commit -m "feat(album): add archive-master rendering pipeline"
 ### Task 6: Implement CLI, local source map, and source-selection receipts
 
 **Files:**
+
 - Create: `packages/album/src/cli.ts`
 - Create: `packages/album/src/cli.test.ts`
 - Local only during execution: `album/local-inputs/source-map.json`
@@ -550,6 +619,7 @@ git commit -m "feat(album): add archive-master rendering pipeline"
 - Generated/committed during execution: `album/edition/source-selection/03_BAD_DECISIONS_GREAT_OUTFIT.json`
 
 **Interfaces:**
+
 - CLI commands: `bootstrap`, `audit`, `render`, `validate`, `receipt`.
 - `audit` emits source-selection receipts but never mutates media.
 
@@ -632,6 +702,7 @@ git commit -m "chore(album): record proof-cycle source selection evidence"
 ### Task 7: Render proof-cycle archive-master candidates and provenance sidecars
 
 **Files:**
+
 - Generated local media under `artifacts/album-build/.../01_*`, `02_*`, `03_*`
 - Generated/committed: `album/edition/qc/01_LOOKS_EXPENSIVE.json`
 - Generated/committed: `album/edition/qc/02_MY_THERAPIST_BLOCKED_ME.json`
@@ -641,6 +712,7 @@ git commit -m "chore(album): record proof-cycle source selection evidence"
 - Generated/committed: `album/edition/mastering-profiles/03_BAD_DECISIONS_GREAT_OUTFIT.json`
 
 **Interfaces:**
+
 - Consumes source-selection receipts and explicit mastering profiles.
 - Produces WAV, FLAC, MP3 candidate masters plus `provenance.json`, `audio_qc.json`, and `checksums.sha256` per track.
 
@@ -706,10 +778,12 @@ git commit -m "feat(album): build proof-cycle archive-master candidates"
 ### Task 8: Add full package validator and blocked-source enforcement
 
 **Files:**
+
 - Create: `packages/album/src/validator.ts`
 - Create: `packages/album/src/validator.test.ts`
 
 **Interfaces:**
+
 - Produces `validateAlbumPackage({ root, manifest }): Promise<ValidationReport>`.
 - Validation report has `status: "PASS" | "FAIL"`, `errors`, `warnings`, `blockedSources`, and `verifiedAssets`.
 
@@ -783,6 +857,7 @@ git commit -m "feat(album): enforce album package validation"
 ### Task 9: Bootstrap final ten-track tree, generate album-level receipt, and verify CI compatibility
 
 **Files:**
+
 - Generated local package: `artifacts/album-build/BLAIZE_SUNDAY_LOOKS_EXPENSIVE_FEELS_WEIRD/`
 - Generated/committed: `album/edition/ALBUM_MANIFEST.json`
 - Generated/committed: `album/edition/RELEASE_READINESS.md`
@@ -790,6 +865,7 @@ git commit -m "feat(album): enforce album package validation"
 - Generated/committed: `album/edition/IMPLEMENTATION_RECEIPT.json`
 
 **Interfaces:**
+
 - `bootstrap` creates all ten directories and required subdirectories without fake media placeholders.
 - `receipt` summarizes source states, verified outputs, blocked tracks, tests, and human-approval boundary.
 

@@ -64,10 +64,7 @@ export interface AuditedCandidate extends SourceMapCandidate {
   sha256: string;
   inspection: Awaited<ReturnType<typeof inspectMedia>>;
   selectionStatus:
-    | "selected_for_archive_candidate"
-    | "alternate_only"
-    | "rejected_corrupt"
-    | "needs_human_a_b";
+    "selected_for_archive_candidate" | "alternate_only" | "rejected_corrupt" | "needs_human_a_b";
   notes: string[];
 }
 
@@ -82,11 +79,14 @@ export interface SourceSelectionReceipt {
 function chooseCandidate(candidates: AuditedCandidate[]): SourceSelectionReceipt["candidates"] {
   const originals = candidates.filter((candidate) => candidate.role === "original_full_mix");
   const cleaned = candidates.filter((candidate) => candidate.role === "cleaned_candidate");
-  const musicForward = candidates.filter((candidate) => candidate.role === "music_forward_candidate");
+  const musicForward = candidates.filter(
+    (candidate) => candidate.role === "music_forward_candidate"
+  );
 
   for (const candidate of musicForward) candidate.selectionStatus = "alternate_only";
   if (cleaned.length > 0 && originals.length > 0) {
-    for (const candidate of [...cleaned, ...originals]) candidate.selectionStatus = "needs_human_a_b";
+    for (const candidate of [...cleaned, ...originals])
+      candidate.selectionStatus = "needs_human_a_b";
   } else if (cleaned.length === 1) {
     cleaned[0]!.selectionStatus = "selected_for_archive_candidate";
   } else if (originals.length === 1) {
@@ -95,7 +95,10 @@ function chooseCandidate(candidates: AuditedCandidate[]): SourceSelectionReceipt
   return candidates;
 }
 
-export async function auditSourceMap(sourceMapPath: string, receiptsDir: string): Promise<SourceSelectionReceipt[]> {
+export async function auditSourceMap(
+  sourceMapPath: string,
+  receiptsDir: string
+): Promise<SourceSelectionReceipt[]> {
   const sourceMap = JSON.parse(await readFile(sourceMapPath, "utf8")) as SourceMap;
   await mkdir(receiptsDir, { recursive: true });
   const receipts: SourceSelectionReceipt[] = [];
@@ -110,8 +113,9 @@ export async function auditSourceMap(sourceMapPath: string, receiptsDir: string)
           filename: basename(candidate.path),
           sha256: await hashFile(candidate.path),
           inspection,
-          selectionStatus: candidate.role === "music_forward_candidate" ? "alternate_only" : "needs_human_a_b",
-          notes: [],
+          selectionStatus:
+            candidate.role === "music_forward_candidate" ? "alternate_only" : "needs_human_a_b",
+          notes: []
         });
       } catch (error) {
         candidates.push({
@@ -125,22 +129,27 @@ export async function auditSourceMap(sourceMapPath: string, receiptsDir: string)
             channels: null,
             bitDepth: null,
             formatName: null,
-            bitRate: null,
+            bitRate: null
           },
           selectionStatus: "rejected_corrupt",
-          notes: [error instanceof Error ? error.message : "unknown audit error"],
+          notes: [error instanceof Error ? error.message : "unknown audit error"]
         });
       }
     }
 
     chooseCandidate(candidates);
-    const selected = candidates.find((candidate) => candidate.selectionStatus === "selected_for_archive_candidate") ?? null;
+    const selected =
+      candidates.find(
+        (candidate) => candidate.selectionStatus === "selected_for_archive_candidate"
+      ) ?? null;
     const receipt: SourceSelectionReceipt = {
       trackId: track.id,
       generatedAt: new Date().toISOString(),
       candidates,
       selectedPath: selected?.path ?? null,
-      humanSelectionRequired: candidates.some((candidate) => candidate.selectionStatus === "needs_human_a_b"),
+      humanSelectionRequired: candidates.some(
+        (candidate) => candidate.selectionStatus === "needs_human_a_b"
+      )
     };
     const destination = join(receiptsDir, `${track.id}.json`);
     await mkdir(dirname(destination), { recursive: true });
@@ -157,8 +166,11 @@ async function renderTrack(options: Record<string, string>): Promise<void> {
   const outputRoot = requireOption(options, "output");
   const profile = JSON.parse(await readFile(profilePath, "utf8")) as MasteringProfile;
   if (profile.trackId !== trackId) throw new Error("profile track does not match --track");
-  const receipt = JSON.parse(await readFile(profile.sourceSelectionReceipt, "utf8")) as SourceSelectionReceipt;
-  if (receipt.humanSelectionRequired || !receipt.selectedPath) throw new Error("HUMAN_A_B_REQUIRED");
+  const receipt = JSON.parse(
+    await readFile(profile.sourceSelectionReceipt, "utf8")
+  ) as SourceSelectionReceipt;
+  if (receipt.humanSelectionRequired || !receipt.selectedPath)
+    throw new Error("HUMAN_A_B_REQUIRED");
 
   const sourceMap = JSON.parse(await readFile(sourceMapPath, "utf8")) as SourceMap;
   if (!(sourceMap[trackId] ?? []).some((candidate) => candidate.path === receipt.selectedPath)) {
@@ -169,12 +181,25 @@ async function renderTrack(options: Record<string, string>): Promise<void> {
   const wav = join(base, "MASTER", `${trackId}_ARCHIVE_MASTER_24-48.wav`);
   const flac = join(base, "MASTER", `${trackId}_MASTER.flac`);
   const mp3 = join(base, "MASTER", `${trackId}_REFERENCE_320.mp3`);
-  await renderArchiveMasterCandidate({ inputPath: receipt.selectedPath, outputWav: wav, outputFlac: flac, outputMp3: mp3, profile });
+  await renderArchiveMasterCandidate({
+    inputPath: receipt.selectedPath,
+    outputWav: wav,
+    outputFlac: flac,
+    outputMp3: mp3,
+    profile
+  });
 
-  const entries = await Promise.all([wav, flac, mp3].map(async (path) => ({ filename: basename(path), sha256: await hashFile(path) })));
+  const entries = await Promise.all(
+    [wav, flac, mp3].map(async (path) => ({
+      filename: basename(path),
+      sha256: await hashFile(path)
+    }))
+  );
   await mkdir(join(base, "METADATA"), { recursive: true });
   await writeChecksumFile(entries, join(base, "METADATA", "checksums.sha256"));
-  const selectedCandidate = receipt.candidates.find((candidate) => candidate.path === receipt.selectedPath)!;
+  const selectedCandidate = receipt.candidates.find(
+    (candidate) => candidate.path === receipt.selectedPath
+  )!;
   await writeProvenanceReceipt(
     {
       assetId: `${trackId}:archive-master-candidate`,
@@ -190,10 +215,11 @@ async function renderTrack(options: Record<string, string>): Promise<void> {
       derivationMethod: "per-track archive-remaster render from selected completed mix",
       nativeStem: false,
       canonical: false,
-      limitationNotice: "Lossless delivery encoding derived from potentially lossy or previously processed source; not lossless-from-source and not a native-stem master.",
-      createdAt: new Date().toISOString(),
+      limitationNotice:
+        "Lossless delivery encoding derived from potentially lossy or previously processed source; not lossless-from-source and not a native-stem master.",
+      createdAt: new Date().toISOString()
     },
-    join(base, "METADATA", "provenance.json"),
+    join(base, "METADATA", "provenance.json")
   );
 }
 
@@ -204,7 +230,10 @@ export async function runCli(argv: string[]): Promise<void> {
     return;
   }
   if (command === "audit") {
-    await auditSourceMap(requireOption(options, "source-map"), requireOption(options, "write-receipts"));
+    await auditSourceMap(
+      requireOption(options, "source-map"),
+      requireOption(options, "write-receipts")
+    );
     return;
   }
   if (command === "render") {
@@ -214,7 +243,8 @@ export async function runCli(argv: string[]): Promise<void> {
   if (command === "validate") {
     const manifest = JSON.parse(await readFile(requireOption(options, "manifest"), "utf8"));
     const report = await validateAlbumPackage({ root: requireOption(options, "root"), manifest });
-    if (options["write-report"]) await writeFile(options["write-report"], `${JSON.stringify(report, null, 2)}\n`, "utf8");
+    if (options["write-report"])
+      await writeFile(options["write-report"], `${JSON.stringify(report, null, 2)}\n`, "utf8");
     if (report.status === "FAIL") process.exitCode = 1;
     return;
   }

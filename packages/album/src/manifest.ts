@@ -11,30 +11,39 @@ export function buildAlbumManifest(sourceState: SourceStateMap): AlbumManifest {
     const blocked = state === "BLOCKED_SOURCE_MISSING";
     const lifecycleStatus = Number(track.id.slice(0, 2)) <= 3 ? "QA" : "DEMO";
     const deliverables: AlbumAssetRecord[] = requiredDeliverables(track).map((filename, index) => {
-      const isCurrentPlanPrimary = filename.startsWith("MASTER/") || filename.startsWith("METADATA/");
-      const isAudioDependent = filename.startsWith("MASTER/") || filename.startsWith("ALTERNATES/") || filename.startsWith("METADATA/");
+      const isCurrentPlanPrimary =
+        filename.startsWith("MASTER/") || filename.startsWith("METADATA/");
+      const isAudioDependent =
+        filename.startsWith("MASTER/") ||
+        filename.startsWith("ALTERNATES/") ||
+        filename.startsWith("METADATA/");
       const presence = blocked
-        ? (isAudioDependent ? "blocked_source_missing" : "not_applicable")
-        : (isCurrentPlanPrimary ? "present_needs_human_approval" : "not_applicable");
+        ? isAudioDependent
+          ? "blocked_source_missing"
+          : "not_applicable"
+        : isCurrentPlanPrimary
+          ? "present_needs_human_approval"
+          : "not_applicable";
       return {
         assetId: `${track.id}:${index + 1}`,
         trackId: track.id,
         filename,
-        canonAssetState: filename.includes("_DERIVED") || filename.includes("_MIX.wav")
-          ? "DERIVED_REPAIR_ONLY"
-          : "CANDIDATE",
+        canonAssetState:
+          filename.includes("_DERIVED") || filename.includes("_MIX.wav")
+            ? "DERIVED_REPAIR_ONLY"
+            : "CANDIDATE",
         catalogState: "CURATED_REFERENCE_MASTER",
         evidenceState: state,
         presence,
         nativeStem: false,
-        canonical: false,
+        canonical: false
       };
     });
     return {
       ...track,
       evidenceState: state,
       lifecycleStatus,
-      deliverables,
+      deliverables
     };
   });
 
@@ -44,7 +53,7 @@ export function buildAlbumManifest(sourceState: SourceStateMap): AlbumManifest {
     edition: "Archive Remaster / Derived Production Edition",
     catalogState: "CURATED_REFERENCE_MASTER",
     releaseAuthorized: false,
-    tracks,
+    tracks
   };
 }
 

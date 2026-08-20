@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  assertValidStateCombination,
-  type AlbumAssetRecord,
-} from "./types.ts";
+import { assertValidStateCombination, type AlbumAssetRecord } from "./types.ts";
 
 test("derived repair assets cannot claim native-stem catalog state", () => {
   const asset: AlbumAssetRecord = {
@@ -15,7 +12,7 @@ test("derived repair assets cannot claim native-stem catalog state", () => {
     evidenceState: "VERIFIED",
     presence: "present_verified",
     nativeStem: false,
-    canonical: false,
+    canonical: false
   };
   assert.throws(() => assertValidStateCombination(asset), /DERIVED_REPAIR_ONLY/);
 });
@@ -30,7 +27,7 @@ test("non-native assets cannot be canonical", () => {
     evidenceState: "VERIFIED",
     presence: "present_needs_human_approval",
     nativeStem: false,
-    canonical: true,
+    canonical: true
   };
   assert.throws(() => assertValidStateCombination(asset), /non-native/);
 });

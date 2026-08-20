@@ -6,14 +6,18 @@ import type { AlbumManifest } from "./types.ts";
 
 export interface ValidationReport {
   status: "PASS" | "FAIL";
-  completionState: "VERIFIED_COMPLETE" | "COMPLETE_PENDING_HUMAN_APPROVAL" | "BLOCKED" | "UNVERIFIED";
+  completionState:
+    "VERIFIED_COMPLETE" | "COMPLETE_PENDING_HUMAN_APPROVAL" | "BLOCKED" | "UNVERIFIED";
   errors: string[];
   warnings: string[];
   blockedSources: string[];
   verifiedAssets: string[];
 }
 
-export function lintDerivativeTerminology(filename: string, asset: { nativeStem: boolean }): string[] {
+export function lintDerivativeTerminology(
+  filename: string,
+  asset: { nativeStem: boolean }
+): string[] {
   if (asset.nativeStem) return [];
   const upper = filename.toUpperCase();
   const forbidden = ["NATIVE_INSTRUMENTAL", "NATIVE_STEM", "DRY_LEAD", "ORIGINAL_MASTER"];
@@ -59,7 +63,8 @@ export async function validateAlbumPackage(args: {
   if (manifest.catalogState !== "CURATED_REFERENCE_MASTER") {
     errors.push("current edition must use CURATED_REFERENCE_MASTER catalog state");
   }
-  if (manifest.releaseAuthorized) errors.push("album package validator cannot authorize public release");
+  if (manifest.releaseAuthorized)
+    errors.push("album package validator cannot authorize public release");
 
   for (const track of manifest.tracks) {
     if (track.evidenceState === "BLOCKED_SOURCE_MISSING") blockedSources.push(track.id);
@@ -71,9 +76,12 @@ export async function validateAlbumPackage(args: {
         errors.push(`${track.id}/${asset.filename}: ${issue}`);
       }
       if (asset.catalogState === "NATIVE_STEM_MASTER" && !asset.nativeStem) {
-        errors.push(`${track.id}/${asset.filename}: non-native asset cannot claim NATIVE_STEM_MASTER`);
+        errors.push(
+          `${track.id}/${asset.filename}: non-native asset cannot claim NATIVE_STEM_MASTER`
+        );
       }
-      if (asset.presence === "blocked_source_missing" || asset.presence === "not_applicable") continue;
+      if (asset.presence === "blocked_source_missing" || asset.presence === "not_applicable")
+        continue;
       if (asset.presence === "present_needs_human_approval") humanApprovalPending = true;
 
       const path = join(root, track.id, asset.filename);
@@ -95,24 +103,31 @@ export async function validateAlbumPackage(args: {
             errors.push(`${track.id}/${asset.filename}: reference MP3 must be 320 kbps class`);
           }
         } catch (error) {
-          errors.push(`${track.id}/${asset.filename}: ${error instanceof Error ? error.message : "media validation failed"}`);
+          errors.push(
+            `${track.id}/${asset.filename}: ${error instanceof Error ? error.message : "media validation failed"}`
+          );
         }
       }
 
       const baseName = asset.filename.split("/").pop()!;
-      if (asset.filename.startsWith("MASTER/") && checksumMap.size > 0 && !checksumMap.has(baseName)) {
+      if (
+        asset.filename.startsWith("MASTER/") &&
+        checksumMap.size > 0 &&
+        !checksumMap.has(baseName)
+      ) {
         errors.push(`${track.id}/${asset.filename}: emitted master missing from checksum file`);
       }
     }
   }
 
-  const completionState: ValidationReport["completionState"] = errors.length > 0
-    ? "UNVERIFIED"
-    : blockedSources.length > 0
-      ? "BLOCKED"
-      : humanApprovalPending
-        ? "COMPLETE_PENDING_HUMAN_APPROVAL"
-        : "VERIFIED_COMPLETE";
+  const completionState: ValidationReport["completionState"] =
+    errors.length > 0
+      ? "UNVERIFIED"
+      : blockedSources.length > 0
+        ? "BLOCKED"
+        : humanApprovalPending
+          ? "COMPLETE_PENDING_HUMAN_APPROVAL"
+          : "VERIFIED_COMPLETE";
 
   if (blockedSources.length > 0) {
     warnings.push(`audio source payload remains blocked for: ${blockedSources.join(", ")}`);
@@ -124,6 +139,6 @@ export async function validateAlbumPackage(args: {
     errors,
     warnings,
     blockedSources,
-    verifiedAssets,
+    verifiedAssets
   };
 }

@@ -12,7 +12,7 @@ function stableNormalize(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, nested]) => [key, stableNormalize(nested)]),
+        .map(([key, nested]) => [key, stableNormalize(nested)])
     );
   }
   return value;

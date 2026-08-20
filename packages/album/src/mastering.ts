@@ -34,7 +34,7 @@ const requiredProfileKeys: Array<keyof MasteringProfile> = [
   "highShelfDb",
   "outputGainDb",
   "applyCompressor",
-  "note",
+  "note"
 ];
 
 export function validateMasteringProfile(profile: MasteringProfile): void {
@@ -68,7 +68,7 @@ export function buildAudioFilters(profile: MasteringProfile): string[] {
   if (profile.applyCompressor && profile.compressor) {
     const c = profile.compressor;
     filters.push(
-      `acompressor=threshold=${c.thresholdDb}dB:ratio=${c.ratio}:attack=${c.attackMs}:release=${c.releaseMs}`,
+      `acompressor=threshold=${c.thresholdDb}dB:ratio=${c.ratio}:attack=${c.attackMs}:release=${c.releaseMs}`
     );
   }
   if (profile.outputGainDb !== 0) filters.push(`volume=${profile.outputGainDb}dB`);
@@ -96,11 +96,11 @@ export async function renderArchiveMasterCandidate(args: {
   await execFileAsync(
     "ffmpeg",
     ["-y", "-v", "error", "-i", outputWav, "-c:a", "flac", outputFlac],
-    { maxBuffer: 8 * 1024 * 1024 },
+    { maxBuffer: 8 * 1024 * 1024 }
   );
   await execFileAsync(
     "ffmpeg",
     ["-y", "-v", "error", "-i", outputWav, "-c:a", "libmp3lame", "-b:a", "320k", outputMp3],
-    { maxBuffer: 8 * 1024 * 1024 },
+    { maxBuffer: 8 * 1024 * 1024 }
   );
 }

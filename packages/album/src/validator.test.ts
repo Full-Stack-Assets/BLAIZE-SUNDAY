@@ -6,7 +6,7 @@ import { lintDerivativeTerminology, validateAlbumPackage } from "./validator.ts"
 test("rejects native label on derived filenames", () => {
   assert.deepEqual(
     lintDerivativeTerminology("01_LOOKS_EXPENSIVE_NATIVE_INSTRUMENTAL.wav", { nativeStem: false }),
-    ["derived asset must not use native terminology"],
+    ["derived asset must not use native terminology"]
   );
 });
 
@@ -16,9 +16,9 @@ test("blocked source gaps are reported without becoming validator errors", async
     title: `TEST ${index + 1}`,
     visualMode: "test",
     signatureSound: "test",
-    evidenceState: index >= 3 ? "BLOCKED_SOURCE_MISSING" as const : "VERIFIED" as const,
+    evidenceState: index >= 3 ? ("BLOCKED_SOURCE_MISSING" as const) : ("VERIFIED" as const),
     lifecycleStatus: "QA" as const,
-    deliverables: [],
+    deliverables: []
   }));
   const manifest: AlbumManifest = {
     artist: "BLAIZE SUNDAY",
@@ -26,7 +26,7 @@ test("blocked source gaps are reported without becoming validator errors", async
     edition: "Archive Remaster / Derived Production Edition",
     catalogState: "CURATED_REFERENCE_MASTER",
     releaseAuthorized: false,
-    tracks,
+    tracks
   };
   const report = await validateAlbumPackage({ root: "/tmp/album-validator-fixture", manifest });
   assert.equal(report.status, "PASS");

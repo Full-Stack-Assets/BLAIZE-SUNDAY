@@ -16,10 +16,13 @@ test("hashFile returns stable SHA-256 for source evidence", async () => {
 test("checksum and provenance receipts serialize deterministically", async () => {
   const dir = await mkdtemp(join(tmpdir(), "album-prov-"));
   const checksumPath = join(dir, "checksums.sha256");
-  await writeChecksumFile([
-    { filename: "b.wav", sha256: "b".repeat(64) },
-    { filename: "a.wav", sha256: "a".repeat(64) },
-  ], checksumPath);
+  await writeChecksumFile(
+    [
+      { filename: "b.wav", sha256: "b".repeat(64) },
+      { filename: "a.wav", sha256: "a".repeat(64) }
+    ],
+    checksumPath
+  );
   const checksum = await readFile(checksumPath, "utf8");
   assert.ok(checksum.startsWith(`${"a".repeat(64)}  a.wav`));
 
@@ -27,6 +30,6 @@ test("checksum and provenance receipts serialize deterministically", async () =>
   await writeProvenanceReceipt({ z: 1, a: { d: 4, c: 3 } }, receiptPath);
   assert.equal(
     await readFile(receiptPath, "utf8"),
-    '{\n  "a": {\n    "c": 3,\n    "d": 4\n  },\n  "z": 1\n}\n',
+    '{\n  "a": {\n    "c": 3,\n    "d": 4\n  },\n  "z": 1\n}\n'
   );
 });

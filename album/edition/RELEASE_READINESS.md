@@ -7,17 +7,17 @@ The campaign and package may advance through reversible internal production whil
 
 ## Gate state
 
-| Gate | Current state | Evidence / next boundary |
-|---|---|---|
-| Canon / identity | PASS for documentary use | Version 4 Canon governs; no new Canon revision requested. |
-| Core voice | HUMAN AUTHORITY / CANON RECONCILIATION REQUIRED | D1 is treated operationally as current lead; stale B3 records must not override it. Final lock evidence remains approval-bound. |
-| Lyrics | CANDIDATE PACKAGE AVAILABLE | Ten complete lyrics exist; final lyric lock remains approval-bound where not already locked. |
-| Audio tracks 01–03 | TECHNICAL CANDIDATE | Source-backed archive-remaster workflow available; final master selection remains Human Authority. |
-| Audio tracks 04–10 | BLOCKED_SOURCE_MISSING | Campaign work may continue; album release may not be called complete. |
-| Artwork | IN PRODUCTION | Ten-cover campaign requires final Human Authority selection. |
-| Video | IN PRODUCTION | Visualizer/lyric-video/priority video work may proceed; final identity continuity approval is required. |
-| Rights / credits | VERIFICATION IN PROGRESS | Unknowns remain fail-closed until evidenced or confirmed. |
-| Distribution / publication | NOT AUTHORIZED | Human Authority required after all applicable release gates pass. |
+| Gate                       | Current state                                   | Evidence / next boundary                                                                                                        |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Canon / identity           | PASS for documentary use                        | Version 4 Canon governs; no new Canon revision requested.                                                                       |
+| Core voice                 | HUMAN AUTHORITY / CANON RECONCILIATION REQUIRED | D1 is treated operationally as current lead; stale B3 records must not override it. Final lock evidence remains approval-bound. |
+| Lyrics                     | CANDIDATE PACKAGE AVAILABLE                     | Ten complete lyrics exist; final lyric lock remains approval-bound where not already locked.                                    |
+| Audio tracks 01–03         | TECHNICAL CANDIDATE                             | Source-backed archive-remaster workflow available; final master selection remains Human Authority.                              |
+| Audio tracks 04–10         | BLOCKED_SOURCE_MISSING                          | Campaign work may continue; album release may not be called complete.                                                           |
+| Artwork                    | IN PRODUCTION                                   | Ten-cover campaign requires final Human Authority selection.                                                                    |
+| Video                      | IN PRODUCTION                                   | Visualizer/lyric-video/priority video work may proceed; final identity continuity approval is required.                         |
+| Rights / credits           | VERIFICATION IN PROGRESS                        | Unknowns remain fail-closed until evidenced or confirmed.                                                                       |
+| Distribution / publication | NOT AUTHORIZED                                  | Human Authority required after all applicable release gates pass.                                                               |
 
 ## Non-waivable release conditions
 

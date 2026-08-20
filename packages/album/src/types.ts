@@ -9,25 +9,11 @@ export type CanonAssetState =
 
 export type CatalogState = "CURATED_REFERENCE_MASTER" | "NATIVE_STEM_MASTER";
 export type EvidenceState =
-  | "VERIFIED"
-  | "UNVERIFIED"
-  | "UNKNOWN"
-  | "CONFLICTING"
-  | "BLOCKED_SOURCE_MISSING";
+  "VERIFIED" | "UNVERIFIED" | "UNKNOWN" | "CONFLICTING" | "BLOCKED_SOURCE_MISSING";
 export type SongLifecycleStatus =
-  | "CONCEPT"
-  | "WRITING"
-  | "DEMO"
-  | "SELECTED"
-  | "QA"
-  | "RELEASE_READY"
-  | "PUBLISHED"
-  | "ARCHIVED";
+  "CONCEPT" | "WRITING" | "DEMO" | "SELECTED" | "QA" | "RELEASE_READY" | "PUBLISHED" | "ARCHIVED";
 export type ManifestPresence =
-  | "present_verified"
-  | "present_needs_human_approval"
-  | "blocked_source_missing"
-  | "not_applicable";
+  "present_verified" | "present_needs_human_approval" | "blocked_source_missing" | "not_applicable";
 
 export interface AlbumAssetRecord {
   assetId: string;
