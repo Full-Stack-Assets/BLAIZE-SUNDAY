@@ -19,7 +19,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle noise texture for depth without clutter */
 body::before {
   content: "";
   position: fixed;
@@ -30,59 +29,27 @@ body::before {
   opacity: 0.4;
 }
 
-/* Clean focus rings */
 *:focus-visible {
   outline: 2px solid #c4a35a;
   outline-offset: 2px;
 }
 
-/* Scrollbar - minimal */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #2e2e34;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3e3e46;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2e34; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3e3e46; }
 
-/* Writing surface */
 .lyric-surface {
   font-variant-ligatures: none;
   letter-spacing: -0.01em;
   line-height: 1.55;
 }
 
-.section-label {
-  @apply text-[10px] uppercase tracking-[0.18em] text-ash/70 font-medium;
-}
-
-/* Mobile keyboard + safe area */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Prevent iOS bounce from fighting the writing surface */
-html,
-body {
-  overscroll-behavior-y: none;
-}
-
-/* Hide scrollbars on horizontal strips while keeping scroll */
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
+.section-label { @apply text-[10px] uppercase tracking-[0.18em] text-ash/70 font-medium; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+html, body { overscroll-behavior-y: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 .card { @apply rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-2; }
 .pill { @apply text-[10px] uppercase tracking-wider px-2 py-1 rounded border border-slate-700 text-ash/70; }
 .pill-green { @apply text-accent border-accent/30; }
@@ -103,9 +70,9 @@ body {
 .notice { @apply text-[12px] text-ash/70; }
 .event { @apply border-t border-slate-800 py-3 text-[12px] text-ash/70; }
 .button { @apply inline-flex h-9 items-center rounded-lg bg-accent px-3 text-[12px] text-void; }
+.input { @apply w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-bone placeholder:text-ash/35; font-size: 16px; }
 .shell { @apply contents; }
 .container { @apply contents; }
 .topbar { @apply hidden; }
 .nav { @apply hidden; }
 .brand { @apply hidden; }
-

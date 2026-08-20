@@ -1,0 +1,188 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { InMemoryVideoRunRepository } from "./repository.ts";
+import { VideoRunService } from "./service.ts";
+
+const briefInput = {
+  title: "Why Galaxies Form the Cosmic Web",
+  topic: "Why galaxies form the cosmic web",
+  audience: "curious adults",
+  tone: "clear, cinematic, scientifically accurate",
+  targetDurationSeconds: 60,
+  requiredCoverage: [
+    "primordial density fluctuations",
+    "dark matter",
+    "filaments",
+    "nodes",
+    "voids"
+  ],
+  visualRequirements: ["dark space", "cyan/gold accents"]
+};
+
+const causalTranscript =
+  "Primordial density fluctuations seeded structure. Dark matter formed the gravitational scaffolding while matter collected into filaments and nodes, leaving voids between them.";
+
+const captionSrt = `1\n00:00:00,000 --> 00:00:03,000\nPrimordial density fluctuations seeded structure.\n\n2\n00:00:03,000 --> 00:00:07,000\nDark matter formed the gravitational scaffolding.\n\n3\n00:00:07,000 --> 00:00:12,000\nMatter collected into filaments and nodes, leaving voids.\n`;
+
+async function createTaskedRun(service: VideoRunService, taskId: string) {
+  const run = await service.createRoot(briefInput);
+  await service.attachExternalTask(run.id, taskId);
+  return run;
+}
+
+test("root run waits for connector-mediated Wisebase execution", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await service.createRoot(briefInput);
+  assert.equal(run.status, "AWAITING_EXTERNAL_EXECUTION");
+  assert.equal(run.provider, "WISEBASE");
+  assert.equal(run.connectorMode, "CONNECTOR_MEDIATED");
+  assert.equal(run.version, 1);
+  assert.equal(run.parentRunId, null);
+});
+
+test("external task attachment moves a run to pending", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await service.createRoot(briefInput);
+  const pending = await service.attachExternalTask(run.id, "task-123");
+  assert.equal(pending.status, "PENDING");
+  assert.equal(pending.externalTaskId, "task-123");
+});
+
+test("successful Wisebase completion stops at captions required", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-success");
+  const completed = await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    metrics: { total_duration: 60 },
+    error: { final_error: null }
+  });
+  assert.equal(completed.status, "CAPTIONS_REQUIRED");
+  assert.equal(completed.videoUrl, "https://example.test/video.mp4");
+  assert.notEqual(completed.status, "VERIFIED");
+});
+
+test("provider error fails the run", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-error");
+  const failed = await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    metrics: null,
+    error: { final_error: "render failed" }
+  });
+  assert.equal(failed.status, "FAILED");
+});
+
+test("completed result without a video URL fails closed", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-no-url");
+  const failed = await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: null,
+    metrics: null,
+    error: { final_error: null }
+  });
+  assert.equal(failed.status, "FAILED");
+});
+
+test("controlled mutation creates a child version in the same lineage", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const root = await service.createRoot(briefInput);
+  const child = await service.createMutation(root.id, "MORE_EXPLANATORY");
+  assert.equal(child.parentRunId, root.id);
+  assert.equal(child.lineageKey, root.lineageKey);
+  assert.equal(child.version, 2);
+  assert.equal(child.mutation, "MORE_EXPLANATORY");
+  assert.equal(child.status, "AWAITING_EXTERNAL_EXECUTION");
+  assert.deepEqual(
+    (child.brief as typeof briefInput).requiredCoverage,
+    (root.brief as typeof briefInput).requiredCoverage
+  );
+});
+
+test("caption import persists JSON, SRT, and VTT without self-verifying", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-captions");
+  await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    error: { final_error: null }
+  });
+
+  const result = await service.attachCaptions(run.id, {
+    source: "MANUAL_IMPORT",
+    locale: "en",
+    format: "srt",
+    content: `1\n00:00:00,000 --> 00:00:02,000\nThe universe is not random.\n\n2\n00:00:02,000 --> 00:00:05,500\nOn the largest scales, it forms a web.\n`
+  });
+
+  assert.equal(result.run.captionStatus, "AVAILABLE");
+  assert.equal(result.run.status, "CAPTIONS_REQUIRED");
+  assert.deepEqual(result.captions.map(item => item.format).sort(), ["json", "srt", "vtt"]);
+  assert.ok(result.captions.every(item => item.version === 1));
+});
+
+test("QC promotes only a fully evidenced run to verified", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-qc-pass");
+  await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    error: { final_error: null }
+  });
+  await service.attachCaptions(run.id, {
+    source: "MANUAL_IMPORT",
+    locale: "en",
+    format: "srt",
+    content: captionSrt
+  });
+
+  const result = await service.runQc(run.id, {
+    transcript: causalTranscript,
+    technicalMetadata: {
+      durationSeconds: 60,
+      width: 1280,
+      height: 720,
+      fps: 24
+    },
+    staticEndingRisk: false
+  });
+
+  assert.equal(result.receipt.verified, true);
+  assert.equal(result.run.status, "VERIFIED");
+  assert.equal(result.run.durationSeconds, 60);
+  assert.equal(result.run.fps, 24);
+});
+
+test("QC keeps unresolved evidence out of verified state", async () => {
+  const repo = new InMemoryVideoRunRepository();
+  const service = new VideoRunService(repo);
+  const run = await createTaskedRun(service, "task-qc-unresolved");
+  await service.recordExternalResult(run.id, {
+    status: "completed",
+    videoUrl: "https://example.test/video.mp4",
+    error: { final_error: null }
+  });
+  await service.attachCaptions(run.id, {
+    source: "MANUAL_IMPORT",
+    locale: "en",
+    format: "srt",
+    content: captionSrt
+  });
+
+  const result = await service.runQc(run.id, {});
+
+  assert.equal(result.receipt.verified, false);
+  assert.equal(result.run.status, "NEEDS_REVISION");
+  assert.ok(result.receipt.unresolved.includes("TECHNICAL_METADATA_UNAVAILABLE"));
+  assert.ok(result.receipt.unresolved.includes("UNKNOWN_COVERAGE"));
+});

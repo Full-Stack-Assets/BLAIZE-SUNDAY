@@ -64,6 +64,10 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Prisma validate
+        run: pnpm db:validate
+        env:
+          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
       - name: Generate Prisma client
         run: pnpm db:generate
         env:

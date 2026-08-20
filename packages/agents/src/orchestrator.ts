@@ -157,11 +157,17 @@ export function runCreateNextReleaseGraph(input: CreateNextReleaseInput): Workfl
 
   void createCreativeField("title", "Title", null);
 
+  const status = steps.some(
+    (step) => step.envelope.status === "BLOCKED" || step.envelope.status === "REJECTED"
+  )
+    ? "BLOCKED"
+    : "COMPLETED";
+
   return {
     id: workflowId,
     projectId,
     idempotencyKey: input.idempotencyKey,
-    status: "COMPLETED",
+    status,
     queue,
     title,
     steps

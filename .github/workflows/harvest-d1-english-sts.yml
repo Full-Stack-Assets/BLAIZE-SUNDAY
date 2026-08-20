@@ -1,0 +1,50 @@
+name: Harvest D1 English STS Run
+
+on:
+  push:
+    branches:
+      - voice/elevenlabs-design-adapter
+    paths:
+      - ".github/workflows/harvest-d1-english-sts.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: voice/elevenlabs-design-adapter
+      - name: Locate exact English STS run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p .github/receipts
+          for i in $(seq 1 30); do
+            DATA=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=8ace396d596dbce429fe75e0918e81e3b32e7316&per_page=20")
+            RUN=$(echo "$DATA" | jq '[.workflow_runs[] | select(.name == "ElevenLabs D1 Singing Continuity English STS")][0]')
+            if [ "$RUN" != "null" ]; then
+              STATUS=$(echo "$RUN" | jq -r '.status')
+              if [ "$STATUS" = "completed" ]; then
+                RID=$(echo "$RUN" | jq -r '.id')
+                ARTS=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RID/artifacts")
+                AID=$(echo "$ARTS" | jq -r '.artifacts[0].id // empty')
+                jq -n --argjson run_id "$RID" --arg status "$STATUS" --arg conclusion "$(echo "$RUN" | jq -r '.conclusion')" --arg artifact_id "$AID" '{run_id:$run_id,status:$status,conclusion:$conclusion,artifact_id:($artifact_id|tonumber)}' > .github/receipts/elevenlabs-d1-english-sts-last-run.json
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test -s .github/receipts/elevenlabs-d1-english-sts-last-run.json
+      - name: Commit receipt
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/receipts/elevenlabs-d1-english-sts-last-run.json
+          git commit -m "evidence: record D1 English STS run" || exit 0
+          git push origin HEAD:voice/elevenlabs-design-adapter

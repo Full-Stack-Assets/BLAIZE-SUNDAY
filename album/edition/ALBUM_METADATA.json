@@ -1,0 +1,13 @@
+{
+  "artist": "BLAIZE SUNDAY",
+  "title": "LOOKS EXPENSIVE, FEELS WEIRD",
+  "edition": "Archive Remaster / Derived Production Edition",
+  "public_edition_name": "BLAIZE SUNDAY — LOOKS EXPENSIVE, FEELS WEIRD — Archive Remaster / Derived Production Edition",
+  "catalog_state": "CURATED_REFERENCE_MASTER",
+  "future_catalog_state_reserved": "NATIVE_STEM_MASTER",
+  "release_authorized": false,
+  "native_stem_master_claimed": false,
+  "source_truth": "Current archive masters may be lossless delivery encodings derived from lossy or previously processed completed mixes. They are not lossless-from-source native studio masters.",
+  "canonical_reference": "BLAIZE_SUNDAY_FULL_MASTER_v4.md",
+  "edition_status": "IN_PRODUCTION"
+}

@@ -1,1 +1,5 @@
-export { executeCreateNextRelease, queueCreateNextRelease } from "@songforge/agents";
+export {
+  executeCreateNextRelease,
+  markWorkflowEnqueued,
+  queueCreateNextRelease
+} from "@songforge/agents";

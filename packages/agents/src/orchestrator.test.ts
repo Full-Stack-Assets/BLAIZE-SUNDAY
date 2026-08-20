@@ -51,6 +51,7 @@ test("CREATE NEXT RELEASE graph is idempotent in title selection and never LIVE"
   assert.equal(first.title, "LOOKS EXPENSIVE");
   assert.ok(first.steps.some((step) => step.roleId === "CMO-01"));
   assert.ok(first.steps.some((step) => step.envelope.status === "BLOCKED"));
+  assert.equal(first.status, "BLOCKED");
   assert.equal(
     first.steps.every((step) => step.envelope.status !== "RELEASE_READY"),
     true

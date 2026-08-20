@@ -1,0 +1,22 @@
+{
+  "name": "@songforge/album",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test src/*.test.ts",
+    "bootstrap": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/cli.ts bootstrap",
+    "audit": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/cli.ts audit",
+    "render": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/cli.ts render",
+    "validate": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/cli.ts validate"
+  },
+  "dependencies": {
+    "@songforge/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}

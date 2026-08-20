@@ -1,0 +1,86 @@
+{
+  "edition": "BLAIZE SUNDAY — LOOKS EXPENSIVE, FEELS WEIRD — Archive Remaster / Derived Production Edition",
+  "release_authorized": false,
+  "status_model": ["VERIFIED", "UNVERIFIED", "UNKNOWN", "CONFLICTING"],
+  "items": [
+    {
+      "id": "repo-copyright",
+      "status": "VERIFIED",
+      "release_blocking": false,
+      "note": "Repository software/documentation copyright asserted by Full Stack Assets LICENSE."
+    },
+    {
+      "id": "contributor-assignment",
+      "status": "UNVERIFIED",
+      "release_blocking": true,
+      "note": "Existing dataroom identifies contributor assignment as an open diligence gap."
+    },
+    {
+      "id": "repair-lineage",
+      "status": "VERIFIED",
+      "release_blocking": false,
+      "note": "Repair metadata preserves source filenames, source hashes and derivation relationships."
+    },
+    {
+      "id": "underlying-source-music-rights",
+      "status": "UNKNOWN",
+      "release_blocking": true,
+      "note": "Repair lineage is not evidence of original music-generator, writer, producer or sample rights."
+    },
+    {
+      "id": "writer-producer-splits",
+      "status": "UNKNOWN",
+      "release_blocking": true,
+      "note": "No executed split sheet or equivalent evidence surfaced."
+    },
+    {
+      "id": "voice-d1-commercial-rights",
+      "status": "UNVERIFIED",
+      "release_blocking": true,
+      "note": "D1 is current Human Authority operational lead; exact ElevenLabs plan/asset rights and persistence remain unverified."
+    },
+    {
+      "id": "source-photo-publication-rights",
+      "status": "UNKNOWN",
+      "release_blocking": true,
+      "note": "Uploaded photographs are authorized as internal identity references; photographer/publication rights not separately evidenced."
+    },
+    {
+      "id": "openai-candidate-output-rights",
+      "status": "VERIFIED",
+      "release_blocking": false,
+      "note": "OpenAI terms assign Output rights to user as between user and OpenAI, subject to input and third-party rights."
+    },
+    {
+      "id": "higgsfield-candidate-output-rights",
+      "status": "VERIFIED",
+      "release_blocking": false,
+      "note": "Higgsfield terms do not restrict commercial use of generated Outputs, subject to user rights/clearance responsibilities."
+    },
+    {
+      "id": "bulls-trademark-clearance",
+      "status": "UNVERIFIED",
+      "release_blocking": true,
+      "note": "Candidate wardrobe branding is not sponsorship or trademark clearance evidence."
+    },
+    {
+      "id": "goyard-trademark-clearance",
+      "status": "UNVERIFIED",
+      "release_blocking": true,
+      "note": "Candidate wardrobe branding is not trade-dress/trademark clearance evidence."
+    },
+    {
+      "id": "system-sound-clearance",
+      "status": "UNKNOWN",
+      "release_blocking": true,
+      "note": "Actual audio files used for card reader/hold music/autofocus/voicemail/etc. must be original or cleared."
+    },
+    {
+      "id": "isrc-upc",
+      "status": "UNKNOWN",
+      "release_blocking": false,
+      "note": "Identifiers are not assigned and must not be fabricated."
+    }
+  ],
+  "completion_state": "COMPLETE_PENDING_HUMAN_APPROVAL_AND_RIGHTS_EVIDENCE"
+}

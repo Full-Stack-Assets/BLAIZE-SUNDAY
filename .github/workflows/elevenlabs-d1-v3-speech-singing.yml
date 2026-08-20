@@ -1,0 +1,90 @@
+name: ElevenLabs D1 V3 Speech Singing Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/elevenlabs-d1-v3-speech-singing.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      TARGET_VOICE_ID: j9nOYxfwt3sxAi32BnNI
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify secret
+        shell: bash
+        run: test -n "$ELEVENLABS_API_KEY"
+      - name: Generate direct D1 conversational diagnostic
+        shell: bash
+        run: |
+          mkdir -p artifacts/d1-v3-direct
+          cat > /tmp/speech.json <<'JSON'
+          {
+            "text": "[strong American accent] Seriously, Sarah said the silver city streets were slick after six. I parked the car near the market, started the engine, and realized I was still carrying her red sweater. That's ridiculous, but honestly, it sounds exactly like something I'd do.",
+            "model_id": "eleven_v3"
+          }
+          JSON
+          curl --fail-with-body --location \
+            -X POST "https://api.elevenlabs.io/v1/text-to-speech/$TARGET_VOICE_ID?output_format=mp3_44100_128" \
+            -H "xi-api-key: $ELEVENLABS_API_KEY" \
+            -H "content-type: application/json" \
+            --data-binary @/tmp/speech.json \
+            -o artifacts/d1-v3-direct/D1_V3_CONVERSATIONAL_AMERICAN.mp3
+          test -s artifacts/d1-v3-direct/D1_V3_CONVERSATIONAL_AMERICAN.mp3
+      - name: Generate direct D1 singing diagnostic
+        shell: bash
+        run: |
+          cat > /tmp/singing.json <<'JSON'
+          {
+            "text": "[strong American accent] [sings] I look expensive, even when the night is cheap. I say I'm fine, then let the silence speak. Bad decisions, great outfit, still awake past three. If the room goes quiet, blame it all on me.",
+            "model_id": "eleven_v3"
+          }
+          JSON
+          curl --fail-with-body --location \
+            -X POST "https://api.elevenlabs.io/v1/text-to-speech/$TARGET_VOICE_ID?output_format=mp3_44100_128" \
+            -H "xi-api-key: $ELEVENLABS_API_KEY" \
+            -H "content-type: application/json" \
+            --data-binary @/tmp/singing.json \
+            -o artifacts/d1-v3-direct/D1_V3_SINGING_AMERICAN.mp3
+          test -s artifacts/d1-v3-direct/D1_V3_SINGING_AMERICAN.mp3
+      - name: Hash outputs
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          root=Path('artifacts/d1-v3-direct')
+          files=['D1_V3_CONVERSATIONAL_AMERICAN.mp3','D1_V3_SINGING_AMERICAN.mp3']
+          receipt={
+            'voiceIdentity':'SUNDAY AFTER MIDNIGHT',
+            'candidate':'D1',
+            'targetVoiceId':'j9nOYxfwt3sxAi32BnNI',
+            'provider':'elevenlabs',
+            'modelId':'eleven_v3',
+            'sourceType':'DIRECT_TTS_NO_REFERENCE_AUDIO',
+            'accentDirection':'strong American accent',
+            'singingDirection':'[sings]',
+            'claimState':'DIAGNOSTIC_NOT_YET_CERTIFIED',
+            'outputs':{}
+          }
+          for name in files:
+            p=root/name
+            receipt['outputs'][name]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+          (root/'receipt.json').write_text(json.dumps(receipt,indent=2))
+          PY
+      - name: Upload private artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunday-after-midnight-d1-v3-direct
+          path: artifacts/d1-v3-direct
+          retention-days: 7
+          if-no-files-found: error

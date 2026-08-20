@@ -1,0 +1,100 @@
+name: ElevenLabs D1 Singing Continuity
+
+on:
+  push:
+    branches:
+      - voice/elevenlabs-design-adapter
+    paths:
+      - ".github/d1-singing-continuity-trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: elevenlabs-d1-singing-continuity
+  cancel-in-progress: false
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      D1_VOICE_ID: j9nOYxfwt3sxAi32BnNI
+      SOURCE_URL: https://cdn-editing-temp.picsart.com/editing-temp/64e7a442-b745-4706-af23-eb943067d53a.mp3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: voice/elevenlabs-design-adapter
+      - name: Verify secret
+        shell: bash
+        run: |
+          test -n "$ELEVENLABS_API_KEY" || { echo "ELEVENLABS_API_KEY missing" >&2; exit 1; }
+      - name: Fetch sung source performance
+        shell: bash
+        run: |
+          mkdir -p artifacts/d1-singing-continuity .github/receipts
+          curl --fail --location --silent --show-error "$SOURCE_URL" -o artifacts/d1-singing-continuity/source-singing.mp3
+          test -s artifacts/d1-singing-continuity/source-singing.mp3
+      - name: Convert sung performance into persistent D1 voice
+        shell: bash
+        run: |
+          http_code=$(curl --silent --show-error --write-out "%{http_code}" --output artifacts/d1-singing-continuity/D1_SINGING_CONTINUITY.mp3 \
+            --request POST \
+            "https://api.elevenlabs.io/v1/speech-to-speech/${D1_VOICE_ID}?output_format=mp3_44100_128" \
+            --header "xi-api-key: ${ELEVENLABS_API_KEY}" \
+            --form "audio=@artifacts/d1-singing-continuity/source-singing.mp3" \
+            --form "model_id=eleven_multilingual_sts_v2")
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Voice Changer failed with HTTP ${http_code}" >&2
+            cat artifacts/d1-singing-continuity/D1_SINGING_CONTINUITY.mp3 >&2 || true
+            exit 1
+          fi
+          test -s artifacts/d1-singing-continuity/D1_SINGING_CONTINUITY.mp3
+      - name: Build evidence receipt
+        shell: bash
+        run: |
+          source_sha=$(sha256sum artifacts/d1-singing-continuity/source-singing.mp3 | awk '{print $1}')
+          output_sha=$(sha256sum artifacts/d1-singing-continuity/D1_SINGING_CONTINUITY.mp3 | awk '{print $1}')
+          source_bytes=$(wc -c < artifacts/d1-singing-continuity/source-singing.mp3 | tr -d ' ')
+          output_bytes=$(wc -c < artifacts/d1-singing-continuity/D1_SINGING_CONTINUITY.mp3 | tr -d ' ')
+          cat > artifacts/d1-singing-continuity/receipt.json <<EOF
+          {
+            "voiceIdentity": "SUNDAY AFTER MIDNIGHT",
+            "candidate": "D1",
+            "targetVoiceId": "${D1_VOICE_ID}",
+            "provider": "elevenlabs",
+            "operation": "voice_changer_singing_continuity_probe",
+            "modelId": "eleven_multilingual_sts_v2",
+            "sourcePerformance": {
+              "url": "${SOURCE_URL}",
+              "identityUse": "PERFORMANCE_ONLY_NOT_IDENTITY_EVIDENCE",
+              "sha256": "${source_sha}",
+              "bytes": ${source_bytes}
+            },
+            "output": {
+              "file": "D1_SINGING_CONTINUITY.mp3",
+              "sha256": "${output_sha}",
+              "bytes": ${output_bytes}
+            },
+            "claimState": "GENERATED_NOT_YET_CERTIFIED",
+            "humanReviewRequired": true,
+            "g2Locked": false
+          }
+          EOF
+          cp artifacts/d1-singing-continuity/receipt.json .github/receipts/elevenlabs-d1-singing-continuity-last-run.json
+      - name: Upload private artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunday-after-midnight-d1-singing-continuity
+          path: artifacts/d1-singing-continuity
+          retention-days: 7
+          if-no-files-found: error
+      - name: Commit receipt
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/receipts/elevenlabs-d1-singing-continuity-last-run.json
+          git commit -m "evidence: record D1 singing continuity probe" || exit 0
+          git push origin HEAD:voice/elevenlabs-design-adapter
