@@ -52,33 +52,43 @@ VIDEO/
 ## Track visualizer treatments
 
 ### 01 LOOKS EXPENSIVE
+
 Hotel corridor/check-out desk loop. Slow push toward BLAIZE, card reader red pulse only at structural transitions. A receipt line briefly replaces the horizon line, then snaps back. STATIC //001 can interrupt once with the wrong-house/open-house premise.
 
 ### 02 MY THERAPIST BLOCKED ME
+
 Sterile waiting room loop with hold-line indicator, unoccupied second chair and check-in tablet. Tiny interface errors appear between sections. During the vulnerable bridge, remove most interface overlays and let the room stay still.
 
 ### 03 BAD DECISIONS, GREAT OUTFIT
+
 Direct-flash nightlife/gas-station motion loop. Autofocus target hunts before downbeats, then locks on BLAIZE. Camera movement increases during chorus but never becomes generic club montage.
 
 ### 04 PRETTY BOY PROBLEMS
+
 Fragrance studio, mirror and atomizer mist. Reflection drift is the single corrupted detail. Hook sections use clean mirrored symmetry; bridge lets the reflected expression diverge subtly.
 
 ### 05 DELETE AFTER LISTENING
+
 High-rise kitchen/phone/empty chair. Visualizer behaves like one private voicemail slowly being erased. Deletion tone motif becomes a visual white-frame pulse; bridge strips almost all graphics.
 
 ### 06 NO SIGNAL
+
 Parking-garage geometry and dead cellular bars. Sections lose and regain small pieces of the frame rather than applying full-screen glitch. Chorus widens spatially while the signal indicator disappears entirely.
 
 ### 07 2:17 AM
+
 Hotel room, city bokeh, digital clock fixed at 2:17. Very slow movement, HVAC curtain motion and elevator glow. Minimal lyric typography floats at eye-line, not over the face.
 
 ### 08 PARALLEL YOU
+
 Wet driveway/road fork with blue vehicles and impossible navigation arrows. Each chorus introduces a different path overlay; bridge removes navigation completely and shows only the real road.
 
 ### 09 ROOM SERVICE FOR ONE
+
 Hotel cart and one place setting at a table designed for more. Receipt strip grows a little longer after each chorus. Camera remains formal and symmetrical while BLAIZE breaks the geometry.
 
 ### 10 WRONG FLOOR
+
 Elevator corridor and vending machine. Floor display changes at section boundaries while room numbers remain inconsistent. Final chorus stops the display change for the first time.
 
 ## Audio-state handling
