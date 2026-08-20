@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 export const SUNDAY_AFTER_MIDNIGHT_D1 = {
   voiceIdentityId: "blaize-sunday/sunday-after-midnight",
   internalCandidate: "D1",
@@ -70,9 +72,9 @@ function isD1Reference(value: unknown): boolean {
   );
 }
 
-export function mergeApprovedReferenceAssets(existing: unknown): unknown[] {
+export function mergeApprovedReferenceAssets(existing: unknown): Prisma.InputJsonArray {
   const assets = Array.isArray(existing) ? existing : [];
-  return [...assets.filter((asset) => !isD1Reference(asset)), D1_REFERENCE_ASSET];
+  return [...assets.filter((asset) => !isD1Reference(asset)), D1_REFERENCE_ASSET] as Prisma.InputJsonArray;
 }
 
 export function buildD1VoiceProfileSeed(existingReferenceAssets: unknown) {
