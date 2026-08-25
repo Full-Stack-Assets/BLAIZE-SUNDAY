@@ -1,0 +1,46 @@
+{
+  "artist": "BLAIZE SUNDAY",
+  "profile": "BLAIZE",
+  "campaign": "LOOKS EXPENSIVE, FEELS WEIRD",
+  "state": "READY_TO_QUEUE_WHEN_CHANNELS_CONNECTED",
+  "posts": [
+    {
+      "track": "LOOKS EXPENSIVE",
+      "phase": "teaser",
+      "caption": "Card declined. Fit approved. LOOKS EXPENSIVE.",
+      "asset": "LOOKS_EXPENSIVE motion continuity candidate",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    },
+    {
+      "track": "LOOKS EXPENSIVE",
+      "phase": "release",
+      "caption": "LOOKS EXPENSIVE. First record from LOOKS EXPENSIVE, FEELS WEIRD.",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    },
+    {
+      "track": "MY THERAPIST BLOCKED ME",
+      "phase": "teaser",
+      "caption": "Professional boundary. Personal branding opportunity.",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    },
+    {
+      "track": "MY THERAPIST BLOCKED ME",
+      "phase": "release",
+      "caption": "MY THERAPIST BLOCKED ME. Second proof-cycle record.",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    },
+    {
+      "track": "BAD DECISIONS, GREAT OUTFIT",
+      "phase": "teaser",
+      "caption": "The decision was bad. The silhouette was not.",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    },
+    {
+      "track": "BAD DECISIONS, GREAT OUTFIT",
+      "phase": "release",
+      "caption": "BAD DECISIONS, GREAT OUTFIT. Proof cycle complete.",
+      "platforms": ["tiktok", "instagram", "youtube"]
+    }
+  ],
+  "scheduling_rule": "Anchor all dates to the distributor-confirmed release date; do not invent a release date before provider acceptance."
+}
