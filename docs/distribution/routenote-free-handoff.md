@@ -61,10 +61,24 @@ The RouteNote-specific adapter must fail closed unless the generic DSP package i
 - Label name. If there is no separate label, RouteNote directs independent artists to use the artist name rather than values such as `Unsigned` or `Independent`.
 - C-line and P-line.
 - Writer names with first and last names and composer/lyricist roles.
+- A valid original release date in `YYYY-MM-DD` format. It is kept distinct from RouteNote's Sales Start Date.
+- An explicit AI-assisted classification. Unknown is not silently treated as `false`.
+- If AI-assisted, one or more source-site URLs must be preserved as internal provenance.
 
 ### Identifiers
 
 If a UPC has not already been assigned, the handoff package requests RouteNote-generated UPC assignment instead of inventing one locally.
+
+## RouteNote iOS form mapping
+
+A validated handoff package carries a deterministic `routeNoteForm` projection so the final iOS entry does not require reinterpreting canonical metadata:
+
+- **Release Data:** generated-free UPC request and release title.
+- **Album Details:** language, primary artist, primary/secondary genre, C-line, P-line, record label name, original release date, and explicit flag.
+- **Publishing Details:** writer first name, last name, and composer/lyricist role.
+- **Manage Stores:** Spotify, Apple Music, and YouTube Music as the requested core DSP set; worldwide territory mode unless a later rights/territory decision overrides it before authorization.
+
+The projection is part of the payload hash, so changes require a new matching approval.
 
 ## AI-assisted release policy
 
