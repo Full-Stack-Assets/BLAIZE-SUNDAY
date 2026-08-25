@@ -1,24 +1,45 @@
 # Release Readiness — Archive Remaster / Derived Production Edition
 
-**Current state:** `BLOCKED`  
-**Public release authorized:** `false`
+**Full ten-track album state:** `BLOCKED_SOURCE_MISSING` for tracks 04–10  
+**Proof-cycle singles 01–03 state:** `AUTHORIZED / PAYLOAD_BOUND / ROUTENOTE_ACCOUNT_CREATED_USER_REPORTED / MANUAL_IOS_HANDOFF_PENDING`  
+**Proof-cycle public release authorized:** `true` under the standing Human Authority authorization recorded 2026-08-20.  
+**RouteNote submission verified:** `false`
 
-The campaign and package may advance through reversible internal production while source audio for tracks 04–10 remains `BLOCKED_SOURCE_MISSING`. This exception does not convert missing audio into a release-ready state.
+This document distinguishes the ten-track album state from the separately authorized three-single proof cycle. The album may not be called complete while tracks 04–10 lack usable source audio. That album limitation does not reopen approval gates for the already authorized proof-cycle package.
 
-## Gate state
+## Superseding authority state
 
-| Gate                       | Current state                                   | Evidence / next boundary                                                                                                        |
-| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Canon / identity           | PASS for documentary use                        | Version 4 Canon governs; no new Canon revision requested.                                                                       |
-| Core voice                 | HUMAN AUTHORITY / CANON RECONCILIATION REQUIRED | D1 is treated operationally as current lead; stale B3 records must not override it. Final lock evidence remains approval-bound. |
-| Lyrics                     | CANDIDATE PACKAGE AVAILABLE                     | Ten complete lyrics exist; final lyric lock remains approval-bound where not already locked.                                    |
-| Audio tracks 01–03         | TECHNICAL CANDIDATE                             | Source-backed archive-remaster workflow available; final master selection remains Human Authority.                              |
-| Audio tracks 04–10         | BLOCKED_SOURCE_MISSING                          | Campaign work may continue; album release may not be called complete.                                                           |
-| Artwork                    | IN PRODUCTION                                   | Ten-cover campaign requires final Human Authority selection.                                                                    |
-| Video                      | IN PRODUCTION                                   | Visualizer/lyric-video/priority video work may proceed; final identity continuity approval is required.                         |
-| Rights / credits           | VERIFICATION IN PROGRESS                        | Unknowns remain fail-closed until evidenced or confirmed.                                                                       |
-| Distribution / publication | NOT AUTHORIZED                                  | Human Authority required after all applicable release gates pass.                                                               |
+Later evidence supersedes the older `NOT AUTHORIZED` wording previously carried by this file:
 
-## Non-waivable release conditions
+- `album/edition/approvals/HUMAN_AUTHORITY_AUTHORIZATION_2026-08-20.md` records standing Human Authority authorization for publication and distributor submission of the proof-cycle scope, with no further internal approval gates.
+- `album/edition/release/PROOF_CYCLE_DISTRIBUTION_PAYLOAD.json` binds the exact audio and artwork hashes for `LOOKS EXPENSIVE`, `MY THERAPIST BLOCKED ME`, and `BAD DECISIONS, GREAT OUTFIT` and records `blocking_internal_gates: []`.
+- `album/edition/release/PUBLICATION_SEQUENCE.md` defines the release order and directs submission when an external distributor becomes available.
+- The RouteNote Free handoff implementation is merged into `main` and preserves manual iOS submission plus external-receipt verification.
+- On 2026-08-25 Human Authority reported that the RouteNote account has been created. This is recorded as a user-reported operational fact, not as proof of API connectivity, terms acceptance, or distributor submission.
 
-No public album release may be marked `RELEASE_READY` until the actual release payload has verified audio for every included track, artwork/version hashes, credits, rights/provenance status, metadata, required media deliverables, checksum integrity, and Human Authority approval receipts bound to the exact versions being released.
+## Proof-cycle gate state
+
+| Gate | Current state | Evidence / next boundary |
+| --- | --- | --- |
+| Human Authority | PASS / STANDING | Publication and distributor submission already authorized for the bound proof-cycle assets. |
+| Audio tracks 01–03 | PAYLOAD_BOUND | Exact master candidate hashes are recorded in `PROOF_CYCLE_DISTRIBUTION_PAYLOAD.json`; do not silently substitute materially different masters. |
+| Artwork tracks 01–03 | PAYLOAD_BOUND | Exact square-art hashes are recorded in `PROOF_CYCLE_DISTRIBUTION_PAYLOAD.json`; public de-branded equivalents may be used where required by the standing asset policy. |
+| Identifiers | PROVIDER_ASSIGNED | RouteNote may assign UPC/ISRC values. Do not fabricate identifiers before provider assignment. |
+| RouteNote account | USER_REPORTED_CREATED | Account existence was reported by Human Authority on 2026-08-25. No connected RouteNote API/MCP is available in the current runtime. |
+| RouteNote technical metadata | HANDOFF_PREPARATION | RouteNote-specific validation requires audio/art technical evidence, publishing fields, Original Release Date, Sales Start Date, explicit AI classification, and AI source provenance where applicable. |
+| External submission | NOT YET VERIFIED | Final action occurs in RouteNote iOS. A real RouteNote confirmation must be captured before recording `SUBMITTED`. |
+| DSP live state | NOT YET VERIFIED | `LIVE` requires verified platform evidence after RouteNote delivery. |
+
+## Album gate state
+
+Tracks 04–10 remain outside the immediate proof-cycle release scope while source audio is unavailable. Campaign and internal production work may continue, but the ten-track album must not be represented as release-ready until those source assets exist and are packaged.
+
+## Current execution boundary
+
+The next external action is **not another approval request**. It is the RouteNote iOS handoff for the first proof-cycle single, beginning with **LOOKS EXPENSIVE**, using the already bound audio/art assets and the RouteNote Free field mapping implemented in the release package.
+
+The runtime must remain truthful about state:
+
+`AUTHORIZED + ACCOUNT_CREATED_USER_REPORTED` → `ROUTENOTE_FORM_COMPLETE` → `MANUAL_IOS_HANDOFF` → `ROUTENOTE_CONFIRMATION_CAPTURED` → `SUBMITTED` → `ACCEPTED` → `SCHEDULED` → `LIVE`
+
+No state at or after `SUBMITTED` may be asserted without real provider evidence.
