@@ -15,6 +15,62 @@ import type { DistributionStatus } from "./state-machine.ts";
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
+type RouteNoteWriter = {
+  firstName: string;
+  lastName: string;
+  role: "composer" | "lyricist";
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.some(item => typeof item !== "string")) {
+    return undefined;
+  }
+  return [...value] as string[];
+}
+
+function asWriters(value: unknown): RouteNoteWriter[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+
+  const writers: RouteNoteWriter[] = [];
+  for (const item of value) {
+    const record = asRecord(item);
+    if (!record) return undefined;
+
+    const firstName = asString(record.firstName);
+    const lastName = asString(record.lastName);
+    const role = record.role;
+    if (
+      !firstName ||
+      !lastName ||
+      (role !== "composer" && role !== "lyricist")
+    ) {
+      return undefined;
+    }
+
+    writers.push({ firstName, lastName, role });
+  }
+
+  return writers;
+}
+
 export class PrismaReleaseRepository implements ReleaseRepository {
   private readonly client: PrismaClient;
 
@@ -102,6 +158,10 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     const metadata = release.project.metadata;
     const rights = release.project.rights;
     const warnings = rights?.rightsWarnings;
+    const dspMetadata = asRecord(metadata?.dspMetadata);
+    const routeNote = asRecord(dspMetadata?.routenote);
+    const routeNoteAudio = asRecord(routeNote?.audio);
+    const routeNoteArtwork = asRecord(routeNote?.artwork);
 
     return {
       releaseId: release.id,
@@ -116,7 +176,11 @@ export class PrismaReleaseRepository implements ReleaseRepository {
             sha256: master.sha256,
             approved: master.approved,
             durationSeconds: master.durationSeconds ?? 0,
-            contentType: master.contentType
+            contentType: master.contentType,
+            channels: asNumber(routeNoteAudio?.channels),
+            sampleRateHz: master.sampleRate ?? undefined,
+            bitDepth: master.bitDepth ?? undefined,
+            bitrateKbps: asNumber(routeNoteAudio?.bitrateKbps)
           }
         : null,
       coverArt: cover
@@ -127,7 +191,9 @@ export class PrismaReleaseRepository implements ReleaseRepository {
             approved: cover.approved,
             width: cover.width ?? 0,
             height: cover.height ?? 0,
-            contentType: cover.contentType
+            contentType: cover.contentType,
+            fileSizeBytes: asNumber(routeNoteArtwork?.fileSizeBytes),
+            colorSpace: asString(routeNoteArtwork?.colorSpace)
           }
         : null,
       metadata: metadata
@@ -140,7 +206,15 @@ export class PrismaReleaseRepository implements ReleaseRepository {
             explicit: metadata.explicit,
             description: metadata.description ?? "",
             tags: Array.isArray(metadata.tags) ? (metadata.tags as string[]) : [],
-            credits: metadata.credits as Record<string, unknown>
+            credits: metadata.credits as Record<string, unknown>,
+            labelName: asString(routeNote?.labelName),
+            cLine: asString(routeNote?.cLine),
+            pLine: asString(routeNote?.pLine),
+            writers: asWriters(routeNote?.writers),
+            originalReleaseDate: asString(routeNote?.originalReleaseDate),
+            salesStartDate: asString(routeNote?.salesStartDate),
+            aiAssisted: asBoolean(routeNote?.aiAssisted),
+            aiSourceUrls: asStringArray(routeNote?.aiSourceUrls)
           }
         : null,
       rights: {
