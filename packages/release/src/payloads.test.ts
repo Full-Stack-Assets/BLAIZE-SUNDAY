@@ -77,6 +77,7 @@ function routeNoteReadyContext(aiAssisted = false): ReleasePreparationContext {
       { firstName: "Test", lastName: "Artist", role: "lyricist" }
     ],
     originalReleaseDate: "2026-08-25",
+    salesStartDate: "2026-09-15",
     aiAssisted,
     aiSourceUrls: aiAssisted ? ["https://example.ai/source"] : []
   });
@@ -154,6 +155,7 @@ test("RouteNote Free maps canonical metadata into the iOS release form", () => {
       soundRecordingCopyright: "Test Artist Legal Name",
       recordLabelName: "BLAIZE SUNDAY",
       originalReleaseDate: "2026-08-25",
+      salesStartDate: "2026-09-15",
       explicit: false
     },
     publishingDetails: [
@@ -195,6 +197,42 @@ test("RouteNote Free requires an explicit original release date", () => {
       assert.ok(
         (error.missingRequirements as string[]).includes(
           "ROUTENOTE_ORIGINAL_RELEASE_DATE"
+        )
+      );
+      return true;
+    }
+  );
+});
+
+test("RouteNote Free requires a sales start date", () => {
+  const context = routeNoteReadyContext();
+  delete (context.metadata as Record<string, any>).salesStartDate;
+
+  assert.throws(
+    () => buildDistributionPayload(context, "routenote-free"),
+    (error: unknown) => {
+      assert.ok(error instanceof ReleasePayloadError);
+      assert.ok(
+        (error.missingRequirements as string[]).includes(
+          "ROUTENOTE_SALES_START_DATE"
+        )
+      );
+      return true;
+    }
+  );
+});
+
+test("RouteNote Free rejects a sales start date before the original release date", () => {
+  const context = routeNoteReadyContext();
+  context.metadata!.salesStartDate = "2026-08-24";
+
+  assert.throws(
+    () => buildDistributionPayload(context, "routenote-free"),
+    (error: unknown) => {
+      assert.ok(error instanceof ReleasePayloadError);
+      assert.ok(
+        (error.missingRequirements as string[]).includes(
+          "ROUTENOTE_RELEASE_DATE_ORDER"
         )
       );
       return true;
