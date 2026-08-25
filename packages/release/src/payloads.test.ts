@@ -76,6 +76,7 @@ function routeNoteReadyContext(aiAssisted = false): ReleasePreparationContext {
       { firstName: "Test", lastName: "Artist", role: "composer" },
       { firstName: "Test", lastName: "Artist", role: "lyricist" }
     ],
+    originalReleaseDate: "2026-08-25",
     aiAssisted,
     aiSourceUrls: aiAssisted ? ["https://example.ai/source"] : []
   });
@@ -132,6 +133,40 @@ test("RouteNote Free payload is an iOS handoff package and never claims submissi
   assert.equal(result.submissionPerformed, false);
 });
 
+test("RouteNote Free maps canonical metadata into the iOS release form", () => {
+  const result = buildDistributionPayload(
+    routeNoteReadyContext(),
+    "routenote-free"
+  );
+  const payload = result.payload as Record<string, any>;
+
+  assert.deepEqual(payload.routeNoteForm, {
+    releaseData: {
+      upc: "GENERATE_FREE",
+      releaseTitle: "Chrome Receipt"
+    },
+    albumDetails: {
+      language: "en",
+      primaryArtist: "BLAIZE SUNDAY",
+      primaryGenre: "Alt Pop",
+      secondaryGenre: "Luxury Glitch Pop",
+      compositionCopyright: "Test Artist Legal Name",
+      soundRecordingCopyright: "Test Artist Legal Name",
+      recordLabelName: "BLAIZE SUNDAY",
+      originalReleaseDate: "2026-08-25",
+      explicit: false
+    },
+    publishingDetails: [
+      { firstName: "Test", lastName: "Artist", role: "composer" },
+      { firstName: "Test", lastName: "Artist", role: "lyricist" }
+    ],
+    manageStores: {
+      requested: ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE_MUSIC"],
+      territoryMode: "WORLDWIDE"
+    }
+  });
+});
+
 test("RouteNote Free fails closed when upload requirements are not proven", () => {
   assert.throws(
     () => buildDistributionPayload(completeContext(), "routenote-free"),
@@ -144,6 +179,60 @@ test("RouteNote Free fails closed when upload requirements are not proven", () =
       assert.ok(missing.includes("ROUTENOTE_ARTWORK_FORMAT"));
       assert.ok(missing.includes("ROUTENOTE_ARTWORK_FILE_SIZE"));
       assert.ok(missing.includes("ROUTENOTE_ARTWORK_COLOR_SPACE"));
+      return true;
+    }
+  );
+});
+
+test("RouteNote Free requires an explicit original release date", () => {
+  const context = routeNoteReadyContext();
+  delete (context.metadata as Record<string, any>).originalReleaseDate;
+
+  assert.throws(
+    () => buildDistributionPayload(context, "routenote-free"),
+    (error: unknown) => {
+      assert.ok(error instanceof ReleasePayloadError);
+      assert.ok(
+        (error.missingRequirements as string[]).includes(
+          "ROUTENOTE_ORIGINAL_RELEASE_DATE"
+        )
+      );
+      return true;
+    }
+  );
+});
+
+test("RouteNote Free requires explicit AI classification", () => {
+  const context = routeNoteReadyContext();
+  delete (context.metadata as Record<string, any>).aiAssisted;
+
+  assert.throws(
+    () => buildDistributionPayload(context, "routenote-free"),
+    (error: unknown) => {
+      assert.ok(error instanceof ReleasePayloadError);
+      assert.ok(
+        (error.missingRequirements as string[]).includes(
+          "ROUTENOTE_AI_CLASSIFICATION"
+        )
+      );
+      return true;
+    }
+  );
+});
+
+test("AI-assisted RouteNote package requires provider-source provenance", () => {
+  const context = routeNoteReadyContext(true);
+  context.metadata!.aiSourceUrls = [];
+
+  assert.throws(
+    () => buildDistributionPayload(context, "routenote-free"),
+    (error: unknown) => {
+      assert.ok(error instanceof ReleasePayloadError);
+      assert.ok(
+        (error.missingRequirements as string[]).includes(
+          "ROUTENOTE_AI_PROVENANCE"
+        )
+      );
       return true;
     }
   );
