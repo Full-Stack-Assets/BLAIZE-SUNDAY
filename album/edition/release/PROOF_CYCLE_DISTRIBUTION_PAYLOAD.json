@@ -1,0 +1,61 @@
+{
+  "artist": "BLAIZE SUNDAY",
+  "edition": "LOOKS EXPENSIVE, FEELS WEIRD — Archive Remaster / Derived Production Edition",
+  "scope": "proof-cycle singles 01-03",
+  "authorization_state": "HUMAN_AUTHORITY_AUTHORIZED",
+  "submission_state": "READY_FOR_PROVIDER_CONNECTION",
+  "release_date": null,
+  "identifier_policy": "ISRC/UPC assigned by distributor; do not fabricate before submission",
+  "catalog_state": "CURATED_REFERENCE_MASTER",
+  "native_stem_master": false,
+  "tracks": [
+    {
+      "sequence": 1,
+      "title": "LOOKS EXPENSIVE",
+      "track_id": "01_LOOKS_EXPENSIVE",
+      "master_asset_id": "01_LOOKS_EXPENSIVE:archive-master-candidate",
+      "master_wav_sha256": "afd55551251dc8888fdde8a8582982553eea37e5eed16c4f444a72fbcceb5c63",
+      "master_flac_sha256": "339e4fbd4f674af9f3bc3ebd63fc3bda8ba202529d17c40ed59297f25442d83d",
+      "reference_mp3_sha256": "73c48855fe37ed9f310b48f355713f43c74748e4eab95fd9866ab8f0a3a15a44",
+      "art_candidate_id": "ART-CAND-01-LOOKS-EXPENSIVE",
+      "art_square_sha256": "26369285b4bcc4929a163db37d2d4d4260443d2cf0bff89274469a0d8c4f0fd9",
+      "isrc": null
+    },
+    {
+      "sequence": 2,
+      "title": "MY THERAPIST BLOCKED ME",
+      "track_id": "02_MY_THERAPIST_BLOCKED_ME",
+      "master_asset_id": "02_MY_THERAPIST_BLOCKED_ME:archive-master-candidate",
+      "master_wav_sha256": "f28124ac9cb49c01a5f4096d902bbcf7e0581804701107b4e1deb5617ca9cb5b",
+      "master_flac_sha256": "941f9b8ec252709170d921d6b4982a1ae7d6db5f148b80316cf46f4a444e5187",
+      "reference_mp3_sha256": "6cdd04c98efe0f4672d7cda1c62a6295203739a7e4e36efbe63c916d3504c3ba",
+      "art_candidate_id": "ART-CAND-02-THERAPIST",
+      "art_square_sha256": "9dfad4a58ad985a21e55f27f877d42e26ee641c99a661c0d8c7911beacebc894",
+      "isrc": null
+    },
+    {
+      "sequence": 3,
+      "title": "BAD DECISIONS, GREAT OUTFIT",
+      "track_id": "03_BAD_DECISIONS_GREAT_OUTFIT",
+      "master_asset_id": "03_BAD_DECISIONS_GREAT_OUTFIT:archive-master-candidate",
+      "master_wav_sha256": "4e620f2e7e752d826ca193fc8668f093bcf2295b313c611051f3f5490bae6206",
+      "master_flac_sha256": "c0127af9bedadbafbcac91eef2dc0dc44e43a409cd70010dd31346dbb9fe7bd2",
+      "reference_mp3_sha256": "f99b3a3886d834c7e05315f813af32775420eabe1b5e39b2ae5dfd5fefb91b3d",
+      "art_candidate_id": "ART-CAND-03-BAD-DECISIONS",
+      "art_square_sha256": "d845f54d0d7a92facde88f1e305a1861d3345967da41d68f35c9ce8ac0b03986",
+      "isrc": null
+    }
+  ],
+  "video": {
+    "looks_expensive_motion_test_job_id": "01db08cf-8e5c-45dc-adae-54ef6ca7a609",
+    "state": "CANDIDATE_MOTION_TEST_RENDERED",
+    "public_video_master_required_for_music_distribution": false
+  },
+  "external_execution": {
+    "music_distributor": "NOT_CONNECTED",
+    "social_profile": "BLAIZE",
+    "social_channels_connected": false
+  },
+  "blocking_internal_gates": [],
+  "next_action": "Submit through the first connected distributor and assign provider-issued identifiers without changing the bound audio/art payload."
+}
