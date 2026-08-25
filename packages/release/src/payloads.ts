@@ -47,6 +47,7 @@ export interface ReleasePreparationContext {
       lastName: string;
       role: "composer" | "lyricist";
     }>;
+    originalReleaseDate?: string;
     aiAssisted?: boolean;
     aiSourceUrls?: string[];
   } | null;
@@ -78,7 +79,10 @@ export type RouteNoteRequirement =
   | "ROUTENOTE_ARTWORK_DIMENSIONS"
   | "ROUTENOTE_ARTWORK_FILE_SIZE"
   | "ROUTENOTE_ARTWORK_COLOR_SPACE"
-  | "ROUTENOTE_REQUIRED_METADATA";
+  | "ROUTENOTE_REQUIRED_METADATA"
+  | "ROUTENOTE_ORIGINAL_RELEASE_DATE"
+  | "ROUTENOTE_AI_CLASSIFICATION"
+  | "ROUTENOTE_AI_PROVENANCE";
 
 export type ReleaseRequirement = DspRequirement | RouteNoteRequirement;
 
@@ -121,6 +125,37 @@ function hasRouteNoteMetadata(context: ReleasePreparationContext): boolean {
           writer.lastName.trim() &&
           (writer.role === "composer" || writer.role === "lyricist")
       )
+  );
+}
+
+function isValidIsoDate(value: string | undefined): boolean {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
+function hasValidRouteNoteAiProvenance(
+  context: ReleasePreparationContext
+): boolean {
+  const metadata = context.metadata;
+  if (typeof metadata?.aiAssisted !== "boolean") return false;
+  if (!metadata.aiAssisted) return true;
+
+  const sourceUrls = metadata.aiSourceUrls ?? [];
+  return (
+    sourceUrls.length > 0 &&
+    sourceUrls.every(sourceUrl => {
+      try {
+        const parsed = new URL(sourceUrl);
+        return parsed.protocol === "https:" || parsed.protocol === "http:";
+      } catch {
+        return false;
+      }
+    })
   );
 }
 
@@ -201,7 +236,13 @@ export function buildRouteNoteChecklist(
     ),
     ROUTENOTE_ARTWORK_COLOR_SPACE:
       context.coverArt?.colorSpace?.trim().toUpperCase() === "RGB",
-    ROUTENOTE_REQUIRED_METADATA: hasRouteNoteMetadata(context)
+    ROUTENOTE_REQUIRED_METADATA: hasRouteNoteMetadata(context),
+    ROUTENOTE_ORIGINAL_RELEASE_DATE: isValidIsoDate(
+      context.metadata?.originalReleaseDate
+    ),
+    ROUTENOTE_AI_CLASSIFICATION:
+      typeof context.metadata?.aiAssisted === "boolean",
+    ROUTENOTE_AI_PROVENANCE: hasValidRouteNoteAiProvenance(context)
   };
 
   const routeNoteMissing = (
@@ -255,8 +296,20 @@ function buildRouteNotePayload(context: ReleasePreparationContext) {
   }
 
   const metadata = context.metadata!;
-  const aiAssisted = Boolean(metadata.aiAssisted);
+  const aiAssisted = metadata.aiAssisted === true;
   const aiSourceUrls = metadata.aiSourceUrls ?? [];
+  const requestedStores = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE_MUSIC"];
+  const excludedStores = aiAssisted
+    ? [
+        "AMAZON_MUSIC",
+        "CONTENT_RECOGNITION",
+        "MELON",
+        "GENIE",
+        "BUGS",
+        "FLO",
+        "VIBE"
+      ]
+    : [];
   const {
     aiAssisted: _aiAssisted,
     aiSourceUrls: _aiSourceUrls,
@@ -281,19 +334,31 @@ function buildRouteNotePayload(context: ReleasePreparationContext) {
         value: null
       }
     },
+    routeNoteForm: {
+      releaseData: {
+        upc: "GENERATE_FREE" as const,
+        releaseTitle: context.title
+      },
+      albumDetails: {
+        language: metadata.language,
+        primaryArtist: context.artistName,
+        primaryGenre: metadata.genre,
+        secondaryGenre: metadata.subgenre,
+        compositionCopyright: metadata.cLine!,
+        soundRecordingCopyright: metadata.pLine!,
+        recordLabelName: metadata.labelName!,
+        originalReleaseDate: metadata.originalReleaseDate!,
+        explicit: metadata.explicit
+      },
+      publishingDetails: metadata.writers!,
+      manageStores: {
+        requested: requestedStores,
+        territoryMode: "WORLDWIDE" as const
+      }
+    },
     storePolicy: {
-      requested: ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE_MUSIC"],
-      excluded: aiAssisted
-        ? [
-            "AMAZON_MUSIC",
-            "CONTENT_RECOGNITION",
-            "MELON",
-            "GENIE",
-            "BUGS",
-            "FLO",
-            "VIBE"
-          ]
-        : []
+      requested: requestedStores,
+      excluded: excludedStores
     },
     aiPolicy: {
       aiAssisted,
