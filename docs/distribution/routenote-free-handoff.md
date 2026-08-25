@@ -36,7 +36,7 @@ An approval inside SongForge authorizes the prepared payload. It is not evidence
 
 ## RouteNote Free package contract
 
-The RouteNote-specific adapter must fail closed unless the generic DSP package is complete and the following provider requirements are proven:
+The RouteNote-specific adapter must fail closed unless the generic DSP package is complete and the following provider requirements are proven.
 
 ### Audio
 
@@ -58,10 +58,12 @@ The RouteNote-specific adapter must fail closed unless the generic DSP package i
 - Release title and primary artist.
 - Genre and language.
 - Credits.
-- Label name. If there is no separate label, RouteNote directs independent artists to use the artist name rather than values such as `Unsigned` or `Independent`.
+- Label name. If there is no separate label, use the artist name rather than values such as `Unsigned` or `Independent`.
 - C-line and P-line.
 - Writer names with first and last names and composer/lyricist roles.
-- A valid original release date in `YYYY-MM-DD` format. It is kept distinct from RouteNote's Sales Start Date.
+- A valid Original Release Date in `YYYY-MM-DD` format.
+- A valid Sales Start Date in `YYYY-MM-DD` format.
+- Original Release Date must be on or before Sales Start Date.
 - An explicit AI-assisted classification. Unknown is not silently treated as `false`.
 - If AI-assisted, one or more source-site URLs must be preserved as internal provenance.
 
@@ -69,12 +71,47 @@ The RouteNote-specific adapter must fail closed unless the generic DSP package i
 
 If a UPC has not already been assigned, the handoff package requests RouteNote-generated UPC assignment instead of inventing one locally.
 
+## Canonical persistence contract
+
+RouteNote-specific preparation evidence is stored inside the existing provider-neutral `ReleaseMetadata.dspMetadata` JSON field. No RouteNote-only database or schema fork is introduced.
+
+```json
+{
+  "routenote": {
+    "labelName": "ARTIST OR LABEL NAME",
+    "cLine": "COMPOSITION RIGHTSHOLDER",
+    "pLine": "SOUND RECORDING RIGHTSHOLDER",
+    "writers": [
+      {
+        "firstName": "FIRST",
+        "lastName": "LAST",
+        "role": "composer"
+      }
+    ],
+    "originalReleaseDate": "YYYY-MM-DD",
+    "salesStartDate": "YYYY-MM-DD",
+    "aiAssisted": true,
+    "aiSourceUrls": ["https://provider.example/source"],
+    "audio": {
+      "channels": 2,
+      "bitrateKbps": 320
+    },
+    "artwork": {
+      "fileSizeBytes": 5000000,
+      "colorSpace": "RGB"
+    }
+  }
+}
+```
+
+`AudioAsset.sampleRate` and `AudioAsset.bitDepth` remain the authoritative persisted technical fields for those properties. The RouteNote reconstruction layer performs strict type checks and does not coerce malformed provider metadata into apparently valid evidence.
+
 ## RouteNote iOS form mapping
 
 A validated handoff package carries a deterministic `routeNoteForm` projection so the final iOS entry does not require reinterpreting canonical metadata:
 
 - **Release Data:** generated-free UPC request and release title.
-- **Album Details:** language, primary artist, primary/secondary genre, C-line, P-line, record label name, original release date, and explicit flag.
+- **Album Details:** language, primary artist, primary/secondary genre, C-line, P-line, record label name, Original Release Date, Sales Start Date, and explicit flag.
 - **Publishing Details:** writer first name, last name, and composer/lyricist role.
 - **Manage Stores:** Spotify, Apple Music, and YouTube Music as the requested core DSP set; worldwide territory mode unless a later rights/territory decision overrides it before authorization.
 
@@ -112,6 +149,12 @@ The generated action package uses:
 
 This runtime has no connected RouteNote submission integration. The RouteNote iOS app is therefore the provider boundary for the final submission action.
 
+## Current application boundary
+
+The current web release endpoints explicitly run in Lab mode and return `LAB_RELEASE_SERVICE_UNAVAILABLE` for server-side release detail and distribution preparation. This implementation does not disguise that boundary by adding a cosmetic submit control to an unavailable server service.
+
+The reusable release package, validation logic, persistence reconstruction, deterministic hashing, authorization binding, and external-receipt state machine remain the canonical implementation path. A future server release-service activation can reuse them without changing the RouteNote contract.
+
 ## Verification and receipts
 
 The release must never be marked `SUBMITTED`, `ACCEPTED`, `SCHEDULED`, or `LIVE` from an internal model assertion.
@@ -136,4 +179,4 @@ Required evidence progression:
 
 ## Current boundary
 
-This capability makes the release **RouteNote-handoff-ready when all asset, rights, metadata, technical, and approval gates pass**. It does not by itself prove that the current BLAIZE SUNDAY single is release-ready, submitted, accepted, scheduled, or live.
+This capability makes a release **RouteNote-handoff-ready when all asset, rights, metadata, technical, persistence, and approval gates pass**. It does not by itself prove that the current BLAIZE SUNDAY single is release-ready, submitted, accepted, scheduled, or live.
