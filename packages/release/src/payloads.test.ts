@@ -224,7 +224,7 @@ test("RouteNote Free requires a sales start date", () => {
 
 test("RouteNote Free rejects a sales start date before the original release date", () => {
   const context = routeNoteReadyContext();
-  context.metadata!.salesStartDate = "2026-08-24";
+  (context.metadata as Record<string, any>).salesStartDate = "2026-08-24";
 
   assert.throws(
     () => buildDistributionPayload(context, "routenote-free"),
