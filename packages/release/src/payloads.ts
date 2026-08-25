@@ -48,6 +48,7 @@ export interface ReleasePreparationContext {
       role: "composer" | "lyricist";
     }>;
     originalReleaseDate?: string;
+    salesStartDate?: string;
     aiAssisted?: boolean;
     aiSourceUrls?: string[];
   } | null;
@@ -81,6 +82,8 @@ export type RouteNoteRequirement =
   | "ROUTENOTE_ARTWORK_COLOR_SPACE"
   | "ROUTENOTE_REQUIRED_METADATA"
   | "ROUTENOTE_ORIGINAL_RELEASE_DATE"
+  | "ROUTENOTE_SALES_START_DATE"
+  | "ROUTENOTE_RELEASE_DATE_ORDER"
   | "ROUTENOTE_AI_CLASSIFICATION"
   | "ROUTENOTE_AI_PROVENANCE";
 
@@ -136,6 +139,17 @@ function isValidIsoDate(value: string | undefined): boolean {
     !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === value
   );
+}
+
+function hasValidReleaseDateOrder(
+  originalReleaseDate: string | undefined,
+  salesStartDate: string | undefined
+): boolean {
+  if (!isValidIsoDate(originalReleaseDate) || !isValidIsoDate(salesStartDate)) {
+    return false;
+  }
+
+  return originalReleaseDate! <= salesStartDate!;
 }
 
 function hasValidRouteNoteAiProvenance(
@@ -239,6 +253,11 @@ export function buildRouteNoteChecklist(
     ROUTENOTE_REQUIRED_METADATA: hasRouteNoteMetadata(context),
     ROUTENOTE_ORIGINAL_RELEASE_DATE: isValidIsoDate(
       context.metadata?.originalReleaseDate
+    ),
+    ROUTENOTE_SALES_START_DATE: isValidIsoDate(context.metadata?.salesStartDate),
+    ROUTENOTE_RELEASE_DATE_ORDER: hasValidReleaseDateOrder(
+      context.metadata?.originalReleaseDate,
+      context.metadata?.salesStartDate
     ),
     ROUTENOTE_AI_CLASSIFICATION:
       typeof context.metadata?.aiAssisted === "boolean",
@@ -348,6 +367,7 @@ function buildRouteNotePayload(context: ReleasePreparationContext) {
         soundRecordingCopyright: metadata.pLine!,
         recordLabelName: metadata.labelName!,
         originalReleaseDate: metadata.originalReleaseDate!,
+        salesStartDate: metadata.salesStartDate!,
         explicit: metadata.explicit
       },
       publishingDetails: metadata.writers!,
