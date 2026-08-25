@@ -15,15 +15,18 @@ This decision extends the existing provider-neutral release factory. It does **n
 
 ## Truthful lifecycle
 
+The persisted release states remain unchanged. RouteNote validation and the manual iOS handoff are evidence-bearing steps inside the existing state transitions, not invented release states.
+
 ```text
 PREPARED
-  -> ROUTENOTE_VALIDATED
+  -> [RouteNote package validation]
   -> AWAITING_AUTHORIZATION
-  -> MANUAL_IOS_HANDOFF_REQUIRED
+  -> [matching approval + manual RouteNote iOS handoff required; no state advance yet]
   -> [RouteNote terms accepted + Distribute Free performed by Human Authority]
   -> [external RouteNote confirmation captured]
   -> SUBMITTED
-  -> ACCEPTED / SCHEDULED
+  -> ACCEPTED
+  -> SCHEDULED
   -> LIVE only after verified platform evidence
 ```
 
@@ -55,7 +58,7 @@ The RouteNote-specific adapter must fail closed unless the generic DSP package i
 - Release title and primary artist.
 - Genre and language.
 - Credits.
-- Label name.
+- Label name. If there is no separate label, RouteNote directs independent artists to use the artist name rather than values such as `Unsigned` or `Independent`.
 - C-line and P-line.
 - Writer names with first and last names and composer/lyricist roles.
 
@@ -111,6 +114,9 @@ Required evidence progression:
 
 - RouteNote release creation: https://support.routenote.com/kb-article/how-do-i-create-a-release-on-routenote/
 - RouteNote audio requirements: https://support.routenote.com/kb-article/what-are-the-audio-file-requirements/
+- RouteNote artwork requirements: https://support.routenote.com/kb-article/what-are-the-album-artwork-requirements/
+- RouteNote record-label field: https://support.routenote.com/kb-article/what-is-the-record-label-name-field-for-and-how-do-i-format-it/
+- RouteNote publishing details: https://support.routenote.com/kb-article/whats-the-publishing-details-section-on-my-release-page/
 - RouteNote AI-release policy: https://support.routenote.com/kb-article/can-i-upload-ai-releases/
 - RouteNote AI metadata guidance: https://support.routenote.com/kb-article/how-should-i-format-a-release-containing-ai-generated-music/
 
