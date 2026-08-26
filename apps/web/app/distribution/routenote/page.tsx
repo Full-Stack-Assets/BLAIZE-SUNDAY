@@ -1,5 +1,5 @@
-import { RouteNoteControlPanel } from "@/components/RouteNoteControlPanel";
+import { RouteNoteControlSurface } from "@/components/RouteNoteControlSurface";
 
 export default function RouteNoteDistributionPage() {
-  return <RouteNoteControlPanel />;
+  return <RouteNoteControlSurface />;
 }
