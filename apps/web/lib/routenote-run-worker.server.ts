@@ -22,22 +22,43 @@ function workerState(): WorkerState {
   return globalWorker.__songforgeRouteNoteWorker;
 }
 
+export function routeNoteRunWorkerStatus(): WorkerState {
+  return { ...workerState() };
+}
+
 export async function startRouteNoteRunWorker(): Promise<void> {
-  if (process.env.NODE_ENV === "test" || process.env.ROUTENOTE_RUN_WORKER_DISABLED === "1") {
+  if (
+    process.env.NODE_ENV === "test" ||
+    process.env.ROUTENOTE_RUN_WORKER_DISABLED === "1" ||
+    !process.env.DATABASE_URL?.trim()
+  ) {
     return;
   }
 
   const state = workerState();
   if (state.started) return;
-  state.started = true;
 
   const dependencies = createWebRouteNoteRunControlDependencies();
   const store = createWebRouteNoteRunStore();
 
-  // A process restart may leave a provider job marked RUNNING. Never automatically
-  // replay it because RouteNote may already contain a partially completed draft.
-  // Convert it to an explicit operator-review item instead.
-  await store.recoverInterrupted();
+  try {
+    // A process restart may leave a provider job marked RUNNING. Never automatically
+    // replay it because RouteNote may already contain a partially completed draft.
+    // Convert it to an explicit operator-review item instead.
+    await store.recoverInterrupted();
+  } catch (error) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? (error as { code: string }).code
+        : "ROUTENOTE_WORKER_START_FAILED";
+    console.error(`[songforge:routenote-worker] ${code}`);
+    return;
+  }
+
+  state.started = true;
 
   const tick = async () => {
     if (state.ticking) return;
