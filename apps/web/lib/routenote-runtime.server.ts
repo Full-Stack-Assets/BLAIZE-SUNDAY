@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import { requireRouteNoteControlAuthority } from "./routenote-authority.server.ts";
 import { createProductionRouteNoteControlDependencies } from "./routenote-control.server.ts";
 
 export function routeNoteWorkspaceRoot(
@@ -10,6 +11,10 @@ export function routeNoteWorkspaceRoot(
   if (explicit) return resolve(explicit);
 
   return /[\\/]apps[\\/]web$/.test(cwd) ? resolve(cwd, "../..") : resolve(cwd);
+}
+
+export function requireWebRouteNoteControlAuthority(request: Request) {
+  requireRouteNoteControlAuthority(request, process.env);
 }
 
 export function createWebRouteNoteControlDependencies() {
