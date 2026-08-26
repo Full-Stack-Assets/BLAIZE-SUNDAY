@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { access, mkdir, readFile, rm } from "node:fs/promises";
+import { access, readFile, rm } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
@@ -11,6 +11,7 @@ import {
 } from "../../../packages/integrations/src/routenote/index.ts";
 import { createRouteNoteCdpPort, type CdpTransport } from "./cdp.ts";
 import { RouteNoteRunnerError } from "./errors.ts";
+import { ensurePrivateDirectory, routeNoteProfileDir } from "./state.ts";
 
 export interface ChromeArgumentInput {
   profileDir: string;
@@ -44,6 +45,7 @@ interface WebSocketLike {
 interface PendingCdpCall {
   resolve(value: any): void;
   reject(error: Error): void;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 class BrowserCdpConnection {
@@ -61,7 +63,10 @@ class BrowserCdpConnection {
         "ROUTENOTE_CDP_CONNECTION_FAILED",
         "Chrome DevTools websocket closed"
       );
-      for (const call of this.pending.values()) call.reject(error);
+      for (const call of this.pending.values()) {
+        clearTimeout(call.timer);
+        call.reject(error);
+      }
       this.pending.clear();
     });
   }
@@ -86,7 +91,7 @@ class BrowserCdpConnection {
           rejectOpen(
             new RouteNoteRunnerError(
               "ROUTENOTE_CDP_CONNECTION_FAILED",
-              `Unable to connect to Chrome DevTools websocket ${url}`
+              "Unable to connect to Chrome DevTools websocket"
             )
           ),
         { once: true }
@@ -124,11 +129,12 @@ class BrowserCdpConnection {
     const pending = this.pending.get(message.id);
     if (!pending) return;
     this.pending.delete(message.id);
+    clearTimeout(pending.timer);
     if (message.error) {
       pending.reject(
         new RouteNoteRunnerError(
           "ROUTENOTE_CDP_CONNECTION_FAILED",
-          `Chrome DevTools error ${message.error.code ?? "unknown"}: ${message.error.message ?? "unknown error"}`
+          `Chrome DevTools command failed: ${message.error.message ?? "unknown error"}`
         )
       );
     } else {
@@ -146,15 +152,27 @@ class BrowserCdpConnection {
     if (params) payload.params = params;
     if (sessionId) payload.sessionId = sessionId;
     const result = new Promise<any>((resolveCall, rejectCall) => {
-      this.pending.set(id, { resolve: resolveCall, reject: rejectCall });
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        rejectCall(
+          new RouteNoteRunnerError(
+            "ROUTENOTE_CDP_CONNECTION_FAILED",
+            `Chrome DevTools command timed out: ${method}`
+          )
+        );
+      }, 10_000);
+      timer.unref?.();
+      this.pending.set(id, { resolve: resolveCall, reject: rejectCall, timer });
     });
     try {
       this.socket.send(JSON.stringify(payload));
-    } catch (error) {
+    } catch {
+      const pending = this.pending.get(id);
+      if (pending) clearTimeout(pending.timer);
       this.pending.delete(id);
       throw new RouteNoteRunnerError(
         "ROUTENOTE_CDP_CONNECTION_FAILED",
-        `Unable to send Chrome DevTools command ${method}: ${String(error)}`
+        `Unable to send Chrome DevTools command ${method}`
       );
     }
     return result;
@@ -191,7 +209,7 @@ export interface LaunchRouteNoteBrowserInput {
 }
 
 function defaultCanExecute(path: string) {
-  return access(path, fsConstants.F_OK).then(
+  return access(path, fsConstants.X_OK).then(
     () => true,
     () => false
   );
@@ -244,7 +262,7 @@ export async function resolveChromeExecutable(
     if (await runtime.canExecute(override)) return resolve(override);
     throw new RouteNoteRunnerError(
       "ROUTENOTE_BROWSER_NOT_FOUND",
-      `ROUTENOTE_BROWSER_EXECUTABLE_PATH does not exist: ${override}`
+      "Configured RouteNote browser executable is unavailable."
     );
   }
 
@@ -254,7 +272,7 @@ export async function resolveChromeExecutable(
 
   throw new RouteNoteRunnerError(
     "ROUTENOTE_BROWSER_NOT_FOUND",
-    "Google Chrome or Chromium was not found. Set ROUTENOTE_BROWSER_EXECUTABLE_PATH to the browser executable."
+    "Google Chrome or Chromium was not found."
   );
 }
 
@@ -315,7 +333,7 @@ async function waitForDevToolsEndpoint(
     if (processState.error) {
       throw new RouteNoteRunnerError(
         "ROUTENOTE_BROWSER_LAUNCH_FAILED",
-        `Chrome failed to launch: ${processState.error.message}`
+        "Chrome failed to launch."
       );
     }
     if (processState.exited) {
@@ -342,6 +360,16 @@ async function waitForDevToolsEndpoint(
   );
 }
 
+function isRouteNoteTarget(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    return parsed.protocol === "https:" && (host === "routenote.com" || host.endsWith(".routenote.com"));
+  } catch {
+    return false;
+  }
+}
+
 async function attachPageSession(
   connection: BrowserCdpConnection,
   initialUrl: string
@@ -352,9 +380,8 @@ async function attachPageSession(
     (target: any) =>
       target?.type === "page" &&
       typeof target?.url === "string" &&
-      target.url.includes("routenote.com")
+      isRouteNoteTarget(target.url)
   );
-  pageTarget ??= targetInfos.find((target: any) => target?.type === "page");
   if (!pageTarget) {
     const created = await connection.send("Target.createTarget", { url: initialUrl });
     pageTarget = { targetId: created?.targetId, type: "page", url: initialUrl };
@@ -362,7 +389,7 @@ async function attachPageSession(
   if (typeof pageTarget?.targetId !== "string") {
     throw new RouteNoteRunnerError(
       "ROUTENOTE_CDP_CONNECTION_FAILED",
-      "Chrome did not expose a usable page target"
+      "Chrome did not expose a usable RouteNote page target"
     );
   }
   const attached = await connection.send("Target.attachToTarget", {
@@ -393,17 +420,56 @@ function processExitPromise(processHandle: ChildProcess): Promise<void> {
   });
 }
 
+async function exitedWithin(
+  processHandle: ChildProcess,
+  timeoutMs: number
+): Promise<boolean> {
+  if (processHandle.exitCode !== null || processHandle.signalCode !== null) return true;
+  return new Promise(resolveExit => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      processHandle.off("exit", onExit);
+      resolveExit(value);
+    };
+    const onExit = () => finish(true);
+    processHandle.once("exit", onExit);
+    timer = setTimeout(() => finish(false), timeoutMs);
+    timer.unref?.();
+    if (settled && timer) clearTimeout(timer);
+  });
+}
+
+async function terminateBrowserProcess(
+  processHandle: ChildProcess,
+  processState: { exited: boolean }
+): Promise<void> {
+  if (processState.exited || processHandle.exitCode !== null || processHandle.signalCode !== null) return;
+
+  processHandle.kill("SIGTERM");
+  if (await exitedWithin(processHandle, 5_000)) return;
+
+  processHandle.kill("SIGKILL");
+  if (await exitedWithin(processHandle, 5_000)) return;
+
+  throw new RouteNoteRunnerError(
+    "ROUTENOTE_STATE_POLICY_VIOLATION",
+    "Chrome could not be stopped safely; RouteNote profile reuse is blocked."
+  );
+}
+
 export async function launchRouteNoteBrowser(
   input: LaunchRouteNoteBrowserInput
 ): Promise<RouteNoteBrowserSession> {
   const env = input.env ?? process.env;
   const platform = input.platform ?? process.platform;
   const profileDir = resolve(
-    input.profileDir ??
-      env.ROUTENOTE_PROFILE_DIR ??
-      join(input.workspaceRoot, ".songforge", "routenote", "browser-profile")
+    input.profileDir ?? routeNoteProfileDir(input.workspaceRoot, env)
   );
-  await mkdir(profileDir, { recursive: true });
+  await ensurePrivateDirectory(profileDir);
   await rm(join(profileDir, "DevToolsActivePort"), { force: true });
 
   const executable = input.executablePath
@@ -412,11 +478,18 @@ export async function launchRouteNoteBrowser(
   if (input.executablePath && !(await defaultCanExecute(executable))) {
     throw new RouteNoteRunnerError(
       "ROUTENOTE_BROWSER_NOT_FOUND",
-      `RouteNote browser executable does not exist: ${executable}`
+      "Configured RouteNote browser executable is unavailable."
     );
   }
 
   const initialUrl = input.initialUrl ?? ROUTENOTE_HOME_URL;
+  if (!isRouteNoteTarget(initialUrl)) {
+    throw new RouteNoteRunnerError(
+      "ROUTENOTE_STATE_POLICY_VIOLATION",
+      "RouteNote browser refused a non-RouteNote initial URL."
+    );
+  }
+
   const processHandle = spawn(
     executable,
     buildChromeArgs({
@@ -456,11 +529,13 @@ export async function launchRouteNoteBrowser(
         try {
           await connection?.send("Browser.close");
         } catch {
-          if (!processState.exited) processHandle.kill("SIGTERM");
+          // Fall through to OS-level termination below.
         } finally {
           connection?.close();
         }
-        await processExitPromise(processHandle);
+        if (!(await exitedWithin(processHandle, 1_500))) {
+          await terminateBrowserProcess(processHandle, processState);
+        }
       },
       async waitForClose() {
         await processExitPromise(processHandle);
@@ -469,11 +544,15 @@ export async function launchRouteNoteBrowser(
     };
   } catch (error) {
     connection?.close();
-    if (!processState.exited) processHandle.kill("SIGTERM");
+    try {
+      await terminateBrowserProcess(processHandle, processState);
+    } catch (terminationError) {
+      throw terminationError;
+    }
     if (error instanceof RouteNoteRunnerError) throw error;
     throw new RouteNoteRunnerError(
       "ROUTENOTE_BROWSER_LAUNCH_FAILED",
-      `Unable to launch RouteNote browser: ${String(error)}`
+      "Unable to launch RouteNote browser."
     );
   }
 }

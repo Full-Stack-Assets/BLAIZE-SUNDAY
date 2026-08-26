@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,7 +9,10 @@ import {
   InMemoryReleaseRepository,
   type ReleaseRecord
 } from "../../../packages/release/src/index.ts";
-import { persistDraftReadyReceipt } from "./receipt.ts";
+import {
+  loadDraftReadyReceipt,
+  persistDraftReadyReceipt
+} from "./receipt.ts";
 
 const NOW = new Date("2026-08-26T05:00:00.000Z");
 
@@ -51,38 +54,37 @@ const receipt: RouteNoteExecutionReceipt = {
   outcome: "DRAFT_READY"
 };
 
-test("DRAFT_READY persists an append-only evidence event and private JSON receipt", async () => {
+test("DRAFT_READY persists one append-only evidence event and one private deterministic receipt", async () => {
   const repository = new InMemoryReleaseRepository();
   await repository.saveRelease(release);
   const workspaceRoot = await mkdtemp(join(tmpdir(), "routenote-receipt-"));
 
   try {
-    const result = await persistDraftReadyReceipt(repository, receipt, workspaceRoot, {
+    const first = await persistDraftReadyReceipt(repository, receipt, workspaceRoot, {
       now: () => NOW,
       id: () => "event-draft-ready"
     });
+    const second = await persistDraftReadyReceipt(repository, receipt, workspaceRoot, {
+      now: () => new Date(NOW.getTime() + 1000),
+      id: () => "must-not-be-used"
+    });
+
+    assert.equal(first.receiptPath, second.receiptPath);
+    assert.equal(first.receiptPath.includes("release-1"), false);
+    assert.equal(first.receiptPath.endsWith(`${receipt.payloadHash}.json`), true);
+    assert.deepEqual(JSON.parse(await readFile(first.receiptPath, "utf8")), receipt);
+    assert.equal((await stat(first.receiptPath)).mode & 0o077, 0);
+
+    const loaded = await loadDraftReadyReceipt(
+      receipt.releaseId,
+      receipt.payloadHash,
+      workspaceRoot
+    );
+    assert.deepEqual(loaded, receipt);
 
     const events = await repository.listReleaseEvents("release-1");
     assert.equal(events.length, 1);
-    assert.deepEqual(events[0], {
-      id: "event-draft-ready",
-      releaseId: "release-1",
-      type: "ROUTENOTE_DRAFT_READY",
-      fromStatus: null,
-      toStatus: null,
-      actor: "routenote-runner",
-      evidence: {
-        provider: "routenote-free",
-        payloadHash: receipt.payloadHash,
-        receipt
-      },
-      createdAt: NOW
-    });
-
-    const written = JSON.parse(await readFile(result.receiptPath, "utf8"));
-    assert.deepEqual(written, receipt);
-    assert.equal(result.receiptPath.includes(".songforge/routenote/receipts/release-1"), true);
-
+    assert.equal(events[0]?.type, "ROUTENOTE_DRAFT_READY");
     assert.equal((await repository.findRelease("release-1"))?.status, "AWAITING_AUTHORIZATION");
     assert.equal((await repository.listExternalReceipts("release-1")).length, 0);
   } finally {

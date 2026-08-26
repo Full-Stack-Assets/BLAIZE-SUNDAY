@@ -3,7 +3,7 @@ import { createReadStream } from "node:fs";
 import {
   chmod,
   open,
-  readFile,
+  realpath,
   rename,
   rm,
   stat
@@ -30,21 +30,15 @@ export interface ResolveVerifiedAssetInput {
 
 function contentTypeExtension(contentType: string): string {
   switch (contentType.trim().toLowerCase()) {
-    case "audio/flac":
-      return ".flac";
+    case "audio/flac": return ".flac";
     case "audio/mpeg":
-    case "audio/mp3":
-      return ".mp3";
+    case "audio/mp3": return ".mp3";
     case "audio/wav":
-    case "audio/x-wav":
-      return ".wav";
+    case "audio/x-wav": return ".wav";
     case "image/jpeg":
-    case "image/jpg":
-      return ".jpg";
-    case "image/png":
-      return ".png";
-    default:
-      return ".bin";
+    case "image/jpg": return ".jpg";
+    case "image/png": return ".png";
+    default: return ".bin";
   }
 }
 
@@ -63,17 +57,13 @@ async function hashFile(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-async function requireVerifiedFile(
-  path: string,
-  expectedSha256: string
-): Promise<string> {
+async function requireVerifiedFile(path: string, expectedSha256: string): Promise<string> {
   let info;
   try {
     info = await stat(path);
   } catch {
     throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
   }
-
   if (!info.isFile()) throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
   const actualSha256 = await hashFile(path);
   if (actualSha256.toLowerCase() !== expectedSha256.trim().toLowerCase()) {
@@ -99,6 +89,12 @@ function maxAssetBytes(env: NodeJS.ProcessEnv): number {
   const raw = env.ROUTENOTE_ASSET_MAX_BYTES?.trim();
   const parsed = raw ? Number(raw) : Number.NaN;
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1_500_000_000;
+}
+
+function fetchTimeoutMs(env: NodeJS.ProcessEnv): number {
+  const raw = env.ROUTENOTE_ASSET_FETCH_TIMEOUT_MS?.trim();
+  const parsed = raw ? Number(raw) : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 30_000;
 }
 
 function allowedRemoteHosts(env: NodeJS.ProcessEnv): Set<string> {
@@ -130,11 +126,19 @@ async function fetchFollowingAllowedRedirects(
   let current = source;
   for (let redirect = 0; redirect <= 5; redirect += 1) {
     assertRemoteSourceAllowed(current, env);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs(env));
+    timeout.unref?.();
     let response: Response;
     try {
-      response = await fetchImpl(current.href, { redirect: "manual" });
+      response = await fetchImpl(current.href, {
+        redirect: "manual",
+        signal: controller.signal
+      });
     } catch {
       throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
+    } finally {
+      clearTimeout(timeout);
     }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
@@ -203,37 +207,42 @@ async function downloadVerifiedAsset(
   try {
     return await requireVerifiedFile(finalPath, normalizedHash);
   } catch (error) {
-    if (
-      error instanceof RouteNoteRunnerError &&
-      error.code === "ROUTENOTE_ASSET_HASH_MISMATCH"
-    ) {
+    if (error instanceof RouteNoteRunnerError && error.code === "ROUTENOTE_ASSET_HASH_MISMATCH") {
       await rm(finalPath, { force: true });
-    } else if (
-      error instanceof RouteNoteRunnerError &&
-      error.code !== "ROUTENOTE_ASSET_UNRESOLVABLE"
-    ) {
+    } else if (error instanceof RouteNoteRunnerError && error.code !== "ROUTENOTE_ASSET_UNRESOLVABLE") {
       throw error;
     }
   }
 
-  const response = await fetchFollowingAllowedRedirects(
-    input.fetchImpl ?? fetch,
-    source,
-    env
-  );
+  const response = await fetchFollowingAllowedRedirects(input.fetchImpl ?? fetch, source, env);
   const temporaryPath = `${finalPath}.part-${randomUUID()}`;
   try {
-    await streamVerifiedResponse(
-      response,
-      temporaryPath,
-      normalizedHash,
-      maxAssetBytes(env)
-    );
+    await streamVerifiedResponse(response, temporaryPath, normalizedHash, maxAssetBytes(env));
     await rename(temporaryPath, finalPath);
     await chmod(finalPath, 0o600);
     return finalPath;
   } catch (error) {
     await rm(temporaryPath, { force: true });
+    if (error instanceof RouteNoteRunnerError) throw error;
+    throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
+  }
+}
+
+async function canonicalProductionLocalPath(
+  localPath: string,
+  workspaceRoot: string,
+  env: NodeJS.ProcessEnv
+): Promise<string> {
+  try {
+    const [canonicalLocal, canonicalRoot] = await Promise.all([
+      realpath(localPath),
+      realpath(routeNoteMediaRoot(workspaceRoot, env))
+    ]);
+    if (!isPathWithin(canonicalLocal, canonicalRoot)) {
+      throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
+    }
+    return canonicalLocal;
+  } catch (error) {
     if (error instanceof RouteNoteRunnerError) throw error;
     throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
   }
@@ -250,13 +259,11 @@ export async function resolveVerifiedAsset(
 
   const localPath = localPathFromSource(fileUrl, input.workspaceRoot);
   if (localPath) {
-    if (
-      env.NODE_ENV === "production" &&
-      !isPathWithin(localPath, routeNoteMediaRoot(input.workspaceRoot, env))
-    ) {
-      throw assetError("ROUTENOTE_ASSET_UNRESOLVABLE");
-    }
-    return requireVerifiedFile(localPath, input.sha256);
+    const verifiedPath =
+      env.NODE_ENV === "production"
+        ? await canonicalProductionLocalPath(localPath, input.workspaceRoot, env)
+        : localPath;
+    return requireVerifiedFile(verifiedPath, input.sha256);
   }
 
   let source: URL;
