@@ -16,21 +16,24 @@ without manually constructing `RouteNoteBrowserJob` objects.
 
 ## Architecture
 
-Create a small workspace app at `apps/routenote-runner`. It is an orchestration host only. It depends on `@songforge/release` for canonical release state/payload preparation, `@songforge/integrations` for RouteNote browser execution, and `playwright-core` for launching an installed Chrome browser with a persistent local profile.
+Create a thin orchestration host under `apps/routenote-runner` and invoke it directly from root package scripts. It uses relative imports into `@songforge/release` and `@songforge/integrations`, so it does not create a second package boundary or require dependency-lock churn.
 
-The existing integration adapter remains browser-launch-neutral and does not gain credential storage, browser binaries, database access, or CLI parsing.
+The runner launches an installed Chrome/Chromium browser with a persistent local profile and controls that browser over the native Chrome DevTools Protocol (CDP), using Node's built-in WebSocket client. A small runner-side CDP implementation satisfies the existing `RouteNoteBrowserPort` contract, so the canonical `executeRouteNoteWorkflow()` remains unchanged.
+
+The existing Playwright-compatible adapter remains available for any external host that already has a Playwright Page. The CLI itself does not require Playwright or download a browser bundle.
 
 ## Commands
 
 ### `pnpm routenote:login`
 
 1. Resolve the persistent RouteNote browser profile directory.
-2. Launch installed Chrome in headed mode using Playwright Core.
-3. Navigate to RouteNote.
-4. If an authenticated Distribution surface is already visible, report that the session is reusable.
-5. Otherwise leave the browser open for the operator to authenticate normally.
-6. Wait until the authenticated Distribution surface is visible.
-7. Close the browser context so the persistent profile is flushed to disk.
+2. Locate installed Chrome/Chromium or use `ROUTENOTE_BROWSER_EXECUTABLE_PATH`.
+3. Launch Chrome headed with a loopback-only ephemeral DevTools port and the persistent profile.
+4. Navigate to RouteNote.
+5. If an authenticated Distribution surface is already visible, report that the session is reusable.
+6. Otherwise leave the browser open for the operator to authenticate normally.
+7. Wait until the authenticated Distribution surface is visible.
+8. Close Chrome cleanly so profile/session data is flushed to the private local profile directory.
 
 The command never reads, prompts for, stores, or logs a RouteNote password.
 
@@ -43,10 +46,10 @@ The command never reads, prompts for, stores, or logs a RouteNote password.
 5. Verify each local/materialized file SHA-256 against canonical evidence before browser execution.
 6. Build a single-track `RouteNoteBrowserJob` from the immutable RouteNote payload plus the verified local asset paths. The current canonical release model is `SINGLE`; multi-track batching remains supported by the lower-level adapter for future release models.
 7. Launch the same persistent Chrome profile used by `routenote:login`.
-8. Pass the authenticated page through `createRouteNotePlaywrightPort()` and `executeRouteNoteWorkflow()`.
+8. Create a CDP-backed `RouteNoteBrowserPort` and run `executeRouteNoteWorkflow()`.
 9. Persist the returned `DRAFT_READY` receipt as a `ROUTENOTE_DRAFT_READY` release event with no release-state transition.
 10. Write a local JSON copy under `.songforge/routenote/receipts/<release-id>/`.
-11. Leave the browser open on the finished RouteNote draft unless `ROUTENOTE_CLOSE_BROWSER=1`.
+11. Leave the browser on the finished RouteNote draft for operator inspection. The command exits after the operator closes the browser, unless `ROUTENOTE_CLOSE_BROWSER=1` requests immediate close after the receipt is persisted.
 
 ## Asset resolution
 
@@ -61,18 +64,35 @@ Remote downloads are written atomically and must match the canonical SHA-256 bef
 
 ## Browser runtime
 
-Use `playwright-core` rather than the full Playwright browser bundle. By default the runner launches the installed Google Chrome channel. A host can override this with:
+The runner has no additional npm browser dependency. It launches installed Chrome/Chromium and uses the native CDP websocket endpoint exposed only on loopback.
+
+Supported overrides:
 
 ```text
 ROUTENOTE_BROWSER_EXECUTABLE_PATH=/absolute/path/to/browser
-ROUTENOTE_BROWSER_CHANNEL=chrome
 ROUTENOTE_HEADLESS=1
 ROUTENOTE_PROFILE_DIR=/absolute/path/to/profile
 ROUTENOTE_LOGIN_TIMEOUT_MS=900000
 ROUTENOTE_CLOSE_BROWSER=1
 ```
 
-`ROUTENOTE_HEADLESS` defaults to `0` for calibration/operator visibility. Login always forces headed mode.
+`ROUTENOTE_HEADLESS` defaults to `0` for upload/calibration visibility. Login always forces headed mode.
+
+Browser discovery checks common Google Chrome and Chromium locations for macOS, Windows, and Linux. If no supported browser is found, the runner fails with `ROUTENOTE_BROWSER_NOT_FOUND` and does not mutate RouteNote.
+
+## CDP boundary
+
+The CDP client is intentionally narrow and only implements operations required by `RouteNoteBrowserPort`:
+
+- navigate and current URL;
+- semantic locator resolution for the existing centralized RouteNote candidates;
+- visibility checks;
+- click/fill/select/check;
+- file-input assignment using `DOM.setFileInputFiles`;
+- text collection and visibility waits;
+- screenshots for local evidence.
+
+Action targets must resolve uniquely. Ambiguous action candidates are skipped in favor of a later unique fallback; if no unique fallback exists the runner returns the existing `ROUTENOTE_UI_CONTRACT_CHANGED` error rather than guessing.
 
 ## Local private state
 
@@ -80,7 +100,8 @@ Add `.songforge/routenote/` to `.gitignore`. It may contain:
 
 - persistent browser profile/session data;
 - downloaded temporary release assets;
-- local `DRAFT_READY` receipt copies.
+- local `DRAFT_READY` receipt copies;
+- local failure screenshots.
 
 None of these files are committed.
 
@@ -103,6 +124,7 @@ with the exact browser receipt and payload hash in evidence.
 
 Minimum stable runner errors:
 
+- `ROUTENOTE_CLI_USAGE`
 - `ROUTENOTE_RELEASE_NOT_FOUND`
 - `ROUTENOTE_CONTEXT_NOT_FOUND`
 - `ROUTENOTE_ACTION_PACKAGE_NOT_FOUND`
@@ -110,14 +132,16 @@ Minimum stable runner errors:
 - `ROUTENOTE_ASSET_UNRESOLVABLE`
 - `ROUTENOTE_ASSET_HASH_MISMATCH`
 - `ROUTENOTE_BROWSER_NOT_FOUND`
+- `ROUTENOTE_BROWSER_LAUNCH_FAILED`
+- `ROUTENOTE_CDP_CONNECTION_FAILED`
 - `ROUTENOTE_LOGIN_TIMEOUT`
-- existing browser adapter errors from `@songforge/integrations`
+- existing browser adapter/workflow errors from `@songforge/integrations`
 
 ## Testing
 
 Ordinary CI must not launch Chrome or contact RouteNote.
 
-Unit tests use injected repositories/browser hosts/fetch implementations and cover:
+Unit tests use injected repositories/browser-process/CDP/fetch implementations and cover:
 
 - command parsing;
 - `PREPARED` release preparation;
@@ -126,7 +150,8 @@ Unit tests use injected repositories/browser hosts/fetch implementations and cov
 - local/file/HTTPS asset resolution;
 - SHA mismatch rejection;
 - job construction from canonical payload;
-- persistent-profile browser options;
+- persistent-profile browser launch arguments and executable discovery;
+- CDP locator/action semantics using a fake protocol transport;
 - `DRAFT_READY` event/file receipt persistence;
 - no external submission/state transition.
 
