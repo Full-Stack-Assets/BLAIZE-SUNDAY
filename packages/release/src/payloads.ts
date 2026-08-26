@@ -387,8 +387,14 @@ function buildRouteNotePayload(context: ReleasePreparationContext) {
       additionalModerationPossible: aiAssisted
     },
     handoff: {
-      mode: "MANUAL_IOS_REQUIRED" as const,
-      submissionSupported: false,
+      mode: "BROWSER_AUTOMATION" as const,
+      createReleaseSupported: true,
+      metadataUploadSupported: true,
+      audioUploadSupported: true,
+      artworkUploadSupported: true,
+      storeConfigurationSupported: true,
+      draftCompletionSupported: true,
+      finalSubmission: "HUMAN_AUTHORIZED" as const,
       finalAction: "DISTRIBUTE_FREE" as const,
       termsAcceptanceRequired: true
     }

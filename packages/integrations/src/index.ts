@@ -21,6 +21,9 @@ function envStatus(key: string, capabilities: string[]): IntegrationReport["stat
 
 export function inspectIntegrations(): IntegrationReport[] {
   const llmKey = Boolean(process.env.OPENAI_API_KEY || process.env.GROK_API_KEY);
+  const routeNoteBrowserHostEnabled =
+    process.env.ROUTENOTE_BROWSER_HOST_ENABLED?.trim() === "1";
+
   return [
     {
       id: "postgres",
@@ -81,6 +84,23 @@ export function inspectIntegrations(): IntegrationReport[] {
       detail: "Submit remains I4"
     },
     {
+      id: "routenote",
+      provider: "routenote",
+      status: routeNoteBrowserHostEnabled ? "UNAUTHORIZED" : "UNCONFIGURED",
+      capabilities: [
+        "prepare_release",
+        "create_release",
+        "upload_audio",
+        "upload_artwork",
+        "configure_metadata",
+        "configure_stores",
+        "prepare_draft"
+      ],
+      detail: routeNoteBrowserHostEnabled
+        ? "Browser host configured; authenticated RouteNote session not live-verified by this health projection"
+        : "Authenticated RouteNote browser page must be supplied by a host runtime"
+    },
+    {
       id: "dsp",
       provider: "distributor",
       status: process.env.DSP_API_TOKEN ? "UNAUTHORIZED" : "UNCONFIGURED",
@@ -93,3 +113,5 @@ export function inspectIntegrations(): IntegrationReport[] {
 export function neverClaimConnected(report: IntegrationReport): boolean {
   return report.status === "CONNECTED" ? Boolean(report.detail) : true;
 }
+
+export * from "./routenote/index.ts";
