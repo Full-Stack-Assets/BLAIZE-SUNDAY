@@ -59,6 +59,13 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     };
   }
 
+  if (code === "ROUTENOTE_DESKTOP_SESSION_INPUT_INVALID") {
+    return {
+      status: 400,
+      body: { ok: false, error: { code, message: "A valid RouteNote desktop mode is required." } }
+    };
+  }
+
   if (code === "ROUTENOTE_CONTROL_ORIGIN_REJECTED") {
     return {
       status: 403,
@@ -70,6 +77,13 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     return {
       status: 401,
       body: { ok: false, error: { code, message: "Unlock RouteNote controls to continue." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DESKTOP_SESSION_INVALID") {
+    return {
+      status: 401,
+      body: { ok: false, error: { code, message: "Open a fresh authorized RouteNote desktop session." } }
     };
   }
 
@@ -98,6 +112,13 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     return {
       status: 409,
       body: { ok: false, error: { code, message: "Another RouteNote browser operation is still active." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DRAFT_RECEIPT_NOT_FOUND") {
+    return {
+      status: 409,
+      body: { ok: false, error: { code, message: "No durable DRAFT_READY receipt is available for inspection." } }
     };
   }
 
