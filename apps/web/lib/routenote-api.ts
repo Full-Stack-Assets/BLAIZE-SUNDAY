@@ -122,6 +122,13 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     };
   }
 
+  if (code === "ROUTENOTE_INSPECTION_LOGIN_REQUIRED") {
+    return {
+      status: 409,
+      body: { ok: false, error: { code, message: "Reconnect RouteNote before opening the retained draft." } }
+    };
+  }
+
   if (code === "ROUTENOTE_STATE_POLICY_VIOLATION") {
     return {
       status: 503,
