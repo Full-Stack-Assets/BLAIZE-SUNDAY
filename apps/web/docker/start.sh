@@ -19,17 +19,6 @@ for path in "$STATE_ROOT" "$PROFILE_DIR" "$CACHE_DIR" "$RECEIPT_DIR" "$MEDIA_ROO
   chmod 0700 "$path"
 done
 
-minimal_env() {
-  env -i \
-    PATH="$PATH" \
-    HOME=/home/nextjs \
-    USER=nextjs \
-    LOGNAME=nextjs \
-    LANG="${LANG:-C.UTF-8}" \
-    DISPLAY=:99 \
-    "$@"
-}
-
 pids=""
 cleanup() {
   for pid in $pids; do
@@ -42,10 +31,17 @@ su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs
 pids="$pids $!"
 sleep 1
 
-su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" DISPLAY=:99 x11vnc -display :99 -rfbport 5900 -localhost -forever -shared -nopw -noxdamage' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-x11vnc.log 2>&1 &
+# Interactive bridge: accessible only with a signed INTERACTIVE desktop cookie.
+su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" DISPLAY=:99 x11vnc -display :99 -rfbport 5900 -localhost -forever -shared -nopw -noxdamage' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-x11vnc-interactive.log 2>&1 &
+pids="$pids $!"
+su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" websockify --web=/usr/share/novnc 127.0.0.1:6080 127.0.0.1:5900' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-websockify-interactive.log 2>&1 &
 pids="$pids $!"
 
-su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" websockify --web=/usr/share/novnc 127.0.0.1:6080 127.0.0.1:5900' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-websockify.log 2>&1 &
+# Draft inspection bridge: VNC itself rejects keyboard/pointer input even if the
+# browser client is modified. It is separately authorized with VIEW_ONLY mode.
+su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" DISPLAY=:99 x11vnc -display :99 -rfbport 5901 -localhost -forever -shared -nopw -viewonly -noxdamage' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-x11vnc-view.log 2>&1 &
+pids="$pids $!"
+su-exec nextjs:nodejs sh -c 'exec env -i PATH="$1" HOME=/home/nextjs USER=nextjs LOGNAME=nextjs LANG="${2:-C.UTF-8}" websockify --web=/usr/share/novnc 127.0.0.1:6081 127.0.0.1:5901' sh "$PATH" "${LANG:-C.UTF-8}" >/tmp/songforge-websockify-view.log 2>&1 &
 pids="$pids $!"
 
 PORT=3001 HOSTNAME=127.0.0.1 su-exec nextjs:nodejs node /app/apps/web/server.js >/tmp/songforge-next.log 2>&1 &
