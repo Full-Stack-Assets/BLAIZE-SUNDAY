@@ -128,7 +128,7 @@ async function dependencies(overrides: Partial<RouteNoteControlDependencies> = {
 
   const base: RouteNoteControlDependencies = {
     workspaceRoot: "/workspace",
-    env: {},
+    env: { NODE_ENV: "test" },
     repository,
     releaseService: new ReleaseCommandService(repository),
     async launchBrowser() { return session; },
