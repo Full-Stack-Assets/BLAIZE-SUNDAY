@@ -1,27 +1,51 @@
 # RouteNote Runner CLI
 
-The RouteNote runner is the operator-facing ignition layer for SongForge's RouteNote draft automation.
+The RouteNote runner is the host-side ignition layer for SongForge's RouteNote draft automation. The **preferred operator surface is now the SongForge web control panel** at:
 
-It turns the lower-level browser adapter into two commands:
+```text
+/distribution/routenote
+```
+
+From that page an operator can connect/check RouteNote, select a canonical SongForge release, inspect Audio/Artwork/Metadata/Rights readiness, prepare the provider draft, and open the finished RouteNote draft without using a terminal.
+
+The terminal commands remain available as diagnostic and host-bootstrap fallbacks:
 
 ```bash
 pnpm routenote:login
 pnpm routenote:upload <songforge-release-id>
 ```
 
+The web page and CLI both use the same runner/browser/job/receipt implementation. Neither path creates a second release system.
+
 The runner prepares RouteNote drafts only. It never accepts RouteNote agreements, clicks `Distribute Free`, records an external submission, or advances a SongForge release to `SUBMITTED`.
 
-## Prerequisites
+## Preferred no-terminal workflow
+
+Open SongForge and choose **Distribute → RouteNote**.
+
+1. **Connect RouteNote** starts the headed private RouteNote browser profile on the SongForge execution host and waits for normal operator authentication.
+2. **Check connection** performs a current provider check. A profile directory existing on disk is not treated as proof of authentication.
+3. Select a SongForge release. The page projects the canonical RouteNote checklist into **Audio**, **Artwork**, **Metadata**, and **Rights** readiness groups.
+4. When the release is ready and RouteNote is connected, choose **Prepare RouteNote Draft**.
+5. SongForge resolves and verifies the release assets, creates/resumes the provider draft, enters metadata, uploads audio/artwork, configures stores, and validates the provider state.
+6. The surface ends at **DRAFT READY** and exposes **Open RouteNote Draft** when RouteNote provides a draft URL.
+
+The mobile browser is a **control surface**. Browser automation executes on the SongForge host because it needs database access, release media, Chrome/Chromium, and the private RouteNote profile. If that host is remote and headless, the initial interactive RouteNote sign-in still requires an interactive browser host or an already-authenticated private profile. The web control panel does not relay passwords, MFA prompts, CAPTCHA challenges, or a remote desktop into the phone.
+
+## Host prerequisites
+
+For either the web control panel or CLI execution host:
 
 - Node 20+; repository CI currently verifies Node 24.
-- pnpm 9+.
-- A working SongForge database connection for `routenote:upload`.
-- Google Chrome or Chromium installed locally.
+- pnpm 9+ for the CLI fallback.
+- A working SongForge database connection.
+- Google Chrome or Chromium installed on the execution host.
+- A writable private `.songforge/routenote/` state location, or an explicit `ROUTENOTE_PROFILE_DIR`.
 - A SongForge release with a valid RouteNote preparation context, approved master, approved artwork, metadata, rights/provenance evidence, and asset SHA-256 values.
 
 The runner does not require Playwright or a downloaded browser bundle. It launches installed Chrome/Chromium and controls the session through Chrome DevTools Protocol on loopback only.
 
-## 1. Establish the reusable RouteNote session
+## CLI fallback: establish the reusable RouteNote session
 
 Run:
 
@@ -42,7 +66,7 @@ No RouteNote password is read, prompted for, stored, or logged by SongForge.
 
 Default login timeout is 15 minutes.
 
-## 2. Prepare a RouteNote draft
+## CLI fallback: prepare a RouteNote draft
 
 Run:
 
@@ -82,24 +106,25 @@ By default the finished browser remains open for inspection. Close it normally w
 ```text
 ROUTENOTE_BROWSER_EXECUTABLE_PATH=/absolute/path/to/chrome
 ROUTENOTE_PROFILE_DIR=/absolute/path/to/private-profile
+ROUTENOTE_WORKSPACE_ROOT=/absolute/path/to/songforge
 ROUTENOTE_HEADLESS=1
 ROUTENOTE_LOGIN_TIMEOUT_MS=900000
 ROUTENOTE_CLOSE_BROWSER=1
 ```
 
-`ROUTENOTE_HEADLESS=1` affects upload runs only. `routenote:login` always launches headed so interactive authentication remains possible.
+`ROUTENOTE_HEADLESS=1` affects draft execution only. Login always launches headed so interactive authentication remains possible.
 
 If Chrome cannot be discovered automatically, set `ROUTENOTE_BROWSER_EXECUTABLE_PATH` to the installed Chrome/Chromium executable.
 
 ## Session expiry
 
-If `routenote:upload` reports `ROUTENOTE_SESSION_REQUIRED`, rerun:
+The web surface maps an expired provider session to **LOGIN REQUIRED**. Use **Connect RouteNote** again on an interactive execution host.
+
+The CLI equivalent is:
 
 ```bash
 pnpm routenote:login
 ```
-
-Authenticate normally, allow the command to detect the Distribution surface and close Chrome, then rerun the upload command.
 
 The runner does not attempt to bypass MFA, CAPTCHA, anti-bot controls, account challenges, or RouteNote terms screens.
 
@@ -119,7 +144,7 @@ cache/             materialized remote audio/artwork files
 receipts/          DRAFT_READY execution receipts
 ```
 
-Do not copy browser profile/session data into the repository or logs.
+Do not copy browser profile/session data into the repository, API responses, browser UI, or logs.
 
 ## Exact stopping boundary
 
@@ -139,7 +164,7 @@ SongForge release
 
 `DRAFT_READY` is not submission evidence.
 
-The runner does **not**:
+The runner and web surface do **not**:
 
 - accept the RouteNote Artist/Label Agreement;
 - click `Distribute Free`;
@@ -153,4 +178,6 @@ Those remain separate evidence/authorization boundaries.
 
 Ordinary CI uses fakes and makes no RouteNote network calls. The first production use should therefore be treated as the provider-UI calibration run.
 
-Run `pnpm routenote:login`, then run `pnpm routenote:upload <release-id>` against one authorized release draft. If RouteNote's current labels or page structure differ from the centralized selector contract, the adapter should fail closed rather than guess. Patch selector drift, rerun CI, and repeat the calibration until the draft reaches `DRAFT_READY` with the expected metadata and assets.
+Preferred path: open `/distribution/routenote`, establish a current RouteNote session, choose one authorized ready release, and press **Prepare RouteNote Draft**. The terminal commands remain available if the host needs direct diagnostic execution.
+
+If RouteNote's current labels or page structure differ from the centralized selector contract, the adapter should fail closed rather than guess. Patch selector drift, rerun CI, and repeat the calibration until the draft reaches `DRAFT_READY` with the expected metadata and assets.
