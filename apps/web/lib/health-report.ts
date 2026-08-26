@@ -36,6 +36,7 @@ async function browserRuntime(): Promise<{ available: boolean; version: string |
     const { stdout } = await execFileAsync(executable, ["--version"], {
       timeout: 3000,
       env: {
+        NODE_ENV: process.env.NODE_ENV,
         PATH: process.env.PATH,
         HOME: process.env.HOME,
         LANG: process.env.LANG

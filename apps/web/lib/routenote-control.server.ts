@@ -106,12 +106,13 @@ const BROWSER_ENV_KEYS = [
 function browserEnvironment(
   dependencies: RouteNoteControlDependencies
 ): NodeJS.ProcessEnv {
-  const sanitized: NodeJS.ProcessEnv = {};
+  const sanitized: NodeJS.ProcessEnv = {
+    NODE_ENV: dependencies.env.NODE_ENV
+  };
   for (const key of BROWSER_ENV_KEYS) {
     const value = dependencies.env[key];
     if (value) sanitized[key] = value;
   }
-  sanitized.NODE_ENV = dependencies.env.NODE_ENV;
   sanitized.ROUTENOTE_PROFILE_DIR = routeNoteProfileDir(
     dependencies.workspaceRoot,
     dependencies.env
@@ -138,8 +139,8 @@ async function closeQuietly(session: RouteNoteBrowserSession): Promise<void> {
   try {
     await session.close();
   } catch {
-    // Preserve the original provider/control failure. A stuck browser keeps the
-    // profile lease held by the surrounding operation and therefore fails closed.
+    // Preserve the original provider/control failure. Browser close itself performs
+    // TERM/KILL escalation so normal close returns only once the process is gone.
   }
 }
 
