@@ -9,7 +9,9 @@ export type RouteNoteRunnerErrorCode =
   | "ROUTENOTE_BROWSER_NOT_FOUND"
   | "ROUTENOTE_BROWSER_LAUNCH_FAILED"
   | "ROUTENOTE_CDP_CONNECTION_FAILED"
-  | "ROUTENOTE_LOGIN_TIMEOUT";
+  | "ROUTENOTE_LOGIN_TIMEOUT"
+  | "ROUTENOTE_PROFILE_BUSY"
+  | "ROUTENOTE_STATE_POLICY_VIOLATION";
 
 export class RouteNoteRunnerError extends Error {
   readonly code: RouteNoteRunnerErrorCode;
