@@ -110,7 +110,7 @@ test("distribution payload is deterministic and stops at authorization", () => {
   assert.equal(first.submissionPerformed, false);
 });
 
-test("RouteNote Free payload is an iOS handoff package and never claims submission", () => {
+test("RouteNote Free payload advertises browser automation without claiming submission", () => {
   const result = buildDistributionPayload(
     routeNoteReadyContext(),
     "routenote-free"
@@ -120,8 +120,14 @@ test("RouteNote Free payload is an iOS handoff package and never claims submissi
   assert.equal(payload.provider, "routenote-free");
   assert.equal(payload.distributionPlan, "FREE");
   assert.deepEqual(payload.handoff, {
-    mode: "MANUAL_IOS_REQUIRED",
-    submissionSupported: false,
+    mode: "BROWSER_AUTOMATION",
+    createReleaseSupported: true,
+    metadataUploadSupported: true,
+    audioUploadSupported: true,
+    artworkUploadSupported: true,
+    storeConfigurationSupported: true,
+    draftCompletionSupported: true,
+    finalSubmission: "HUMAN_AUTHORIZED",
     finalAction: "DISTRIBUTE_FREE",
     termsAcceptanceRequired: true
   });
@@ -304,7 +310,7 @@ test("YouTube payload maps assets and remains private without uploading", () => 
   const result = buildYouTubePayload(completeContext());
 
   assert.deepEqual(result.payload, {
-    title: "BLAIZE SUNDAY — Chrome Receipt",
+    title: `${completeContext().artistName} — ${completeContext().title}`,
     description:
       "The outfit survived. The emotional operating system did not.",
     tags: ["blaize sunday", "luxury glitch", "alt pop"],
