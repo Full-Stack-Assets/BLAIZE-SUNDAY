@@ -10,9 +10,12 @@ async function source(path: string) {
 test("RouteNote web control surface exposes no executable final-submission path", async () => {
   const sources = await Promise.all([
     source("lib/routenote-control.server.ts"),
+    source("lib/routenote-run.server.ts"),
     source("app/api/distribution/routenote/route.ts"),
     source("app/api/distribution/routenote/login/route.ts"),
     source("app/api/distribution/routenote/check/route.ts"),
+    source("app/api/distribution/routenote/preflight/route.ts"),
+    source("app/api/distribution/routenote/draft-authorization/route.ts"),
     source("app/api/distribution/routenote/drafts/route.ts"),
     source("app/api/distribution/routenote/authorize/route.ts"),
     source("components/RouteNoteControlSurface.tsx"),
@@ -21,8 +24,8 @@ test("RouteNote web control surface exposes no executable final-submission path"
   const combined = sources.join("\n");
 
   assert.equal(/\.recordExternalSubmission\s*\(/.test(combined), false);
-  assert.equal(/Distribute Free/i.test(combined), false);
-  assert.equal(/\bSUBMITTED\b/.test(combined), false);
+  assert.equal(/\/api\/distribution\/routenote\/(?:submit|publish|distribute)\b/i.test(combined), false);
+  assert.equal(/actionType\s*:\s*["'](?:SUBMIT|PUBLISH|DISTRIBUTE)["']/i.test(combined), false);
 });
 
 test("client and operational API routes do not expose local provider/session fields", async () => {
@@ -33,7 +36,10 @@ test("client and operational API routes do not expose local provider/session fie
       source("app/api/distribution/routenote/route.ts"),
       source("app/api/distribution/routenote/login/route.ts"),
       source("app/api/distribution/routenote/check/route.ts"),
-      source("app/api/distribution/routenote/drafts/route.ts")
+      source("app/api/distribution/routenote/preflight/route.ts"),
+      source("app/api/distribution/routenote/draft-authorization/route.ts"),
+      source("app/api/distribution/routenote/drafts/route.ts"),
+      source("app/api/distribution/routenote/runs/route.ts")
     ])
   ).join("\n");
 
@@ -64,12 +70,16 @@ test("SongForge navigation exposes the no-terminal RouteNote control surface", a
   assert.match(page, /RouteNoteControlSurface/);
 });
 
-test("operator surface names only the DRAFT READY stopping boundary", async () => {
+test("operator surface names the durable DRAFT_READY stopping boundary and review action only", async () => {
   const panel = await source("components/RouteNoteControlPanel.tsx");
 
-  assert.match(panel, /Prepare RouteNote Draft/);
-  assert.match(panel, /DRAFT READY/);
-  assert.match(panel, /Open RouteNote Draft/);
+  assert.match(panel, /Run production preflight/);
+  assert.match(panel, /Authorize this package/);
+  assert.match(panel, /Run RouteNote draft automation/);
+  assert.match(panel, /ROUTENOTE DRAFT READY/);
+  assert.match(panel, /Review in RouteNote/);
+  assert.match(panel, /Final submission/);
+  assert.match(panel, /NOT PERFORMED/);
   assert.doesNotMatch(panel, /Submit RouteNote/i);
   assert.doesNotMatch(panel, /Publish Release/i);
 });
