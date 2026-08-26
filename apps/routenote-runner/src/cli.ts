@@ -1,6 +1,3 @@
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import { RouteNoteRunnerError } from "./errors.ts";
 
 export { RouteNoteRunnerError } from "./errors.ts";
@@ -64,9 +61,8 @@ export async function runRouteNoteCli(
 }
 
 function isMainModule(): boolean {
-  const entry = process.argv[1];
-  if (!entry) return false;
-  return pathToFileURL(resolve(entry)).href === import.meta.url;
+  const entry = process.argv[1]?.replace(/\\/g, "/");
+  return Boolean(entry?.endsWith("/apps/routenote-runner/src/cli.ts"));
 }
 
 async function main() {
