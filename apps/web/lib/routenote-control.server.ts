@@ -68,6 +68,18 @@ class RouteNoteControlServerError extends Error {
   }
 }
 
+function errorCode(error: unknown): string | null {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code?: unknown }).code === "string"
+  ) {
+    return (error as { code: string }).code;
+  }
+  return null;
+}
+
 function envFlag(env: NodeJS.ProcessEnv, key: string): boolean {
   return env[key]?.trim() === "1";
 }
@@ -136,9 +148,6 @@ function launchInput(
 }
 
 async function closeBrowser(session: RouteNoteBrowserSession): Promise<void> {
-  // Browser.close() performs TERM/KILL escalation and throws if process exit cannot
-  // be proven. Propagate that safety failure so the profile lease is not silently
-  // released after an unconfirmed Chromium shutdown.
   await session.close();
 }
 
@@ -148,10 +157,20 @@ async function withBrowserOperation<T>(
 ): Promise<T> {
   if (!dependencies.acquireProfileLease) return operation();
   const lease = await dependencies.acquireProfileLease();
+  let releaseLease = true;
   try {
     return await operation();
+  } catch (error) {
+    const code = errorCode(error);
+    if (
+      code === "ROUTENOTE_STATE_POLICY_VIOLATION" ||
+      code === "ROUTENOTE_BROWSER_TERMINATION_UNCONFIRMED"
+    ) {
+      releaseLease = false;
+    }
+    throw error;
   } finally {
-    await lease.release();
+    if (releaseLease) await lease.release();
   }
 }
 
