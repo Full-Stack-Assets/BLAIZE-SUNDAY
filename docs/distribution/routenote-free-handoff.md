@@ -44,7 +44,7 @@ The adapter entrypoints are:
 import {
   createRouteNotePlaywrightPort,
   executeRouteNoteWorkflow
-} from "@songforge/integrations/routenote";
+} from "@songforge/integrations";
 
 const port = createRouteNotePlaywrightPort(authenticatedRouteNotePage);
 const receipt = await executeRouteNoteWorkflow(job, port);
