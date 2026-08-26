@@ -14,7 +14,7 @@ export type RouteNoteErrorCode =
 export class RouteNoteBrowserError extends Error {
   readonly code: RouteNoteErrorCode;
 
-  constructor(code: RouteNoteErrorCode, message = code) {
+  constructor(code: RouteNoteErrorCode, message: string = code) {
     super(message);
     this.name = "RouteNoteBrowserError";
     this.code = code;
