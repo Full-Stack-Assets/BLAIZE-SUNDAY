@@ -13,6 +13,7 @@ import {
   routeNoteProfileDir,
   routeNoteStateRoot
 } from "../../routenote-runner/src/state.ts";
+import { routeNoteRunWorkerStatus } from "./routenote-run-worker.server.ts";
 import { routeNoteWorkspaceRoot } from "./routenote-runtime.server.ts";
 
 const execFileAsync = promisify(execFile);
@@ -68,11 +69,17 @@ export async function buildHealthReport() {
     privateDirectory(routeNoteProfileDir(workspaceRoot, process.env)),
     privateDirectory(routeNoteMediaRoot(workspaceRoot, process.env))
   ]);
+  const worker = routeNoteRunWorkerStatus();
 
   const production = process.env.NODE_ENV === "production";
   const authorityConfigured = Boolean(process.env.ROUTENOTE_CONTROL_PASSPHRASE?.trim());
   const runtimeReady =
-    browser.available && statePrivate && profilePrivate && mediaPrivate && authorityConfigured;
+    browser.available &&
+    statePrivate &&
+    profilePrivate &&
+    mediaPrivate &&
+    authorityConfigured &&
+    worker.started;
   const ok = production
     ? database === "CONNECTED" && runtimeReady
     : database !== "FAILED";
@@ -92,6 +99,7 @@ export async function buildHealthReport() {
     database,
     routenote: {
       browser,
+      worker,
       storage: {
         statePrivate,
         profilePrivate,
