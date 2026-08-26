@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@songforge/agents": "workspace:*",
+    "@songforge/agents": "*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2"
   },

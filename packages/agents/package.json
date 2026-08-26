@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
-    "@songforge/canon": "workspace:*",
-    "@songforge/database": "workspace:*",
-    "@songforge/llm": "workspace:*",
-    "@songforge/release": "workspace:*",
-    "@songforge/shared": "workspace:*",
-    "@songforge/voice": "workspace:*",
+    "@songforge/canon": "*",
+    "@songforge/database": "*",
+    "@songforge/llm": "*",
+    "@songforge/release": "*",
+    "@songforge/shared": "*",
+    "@songforge/voice": "*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

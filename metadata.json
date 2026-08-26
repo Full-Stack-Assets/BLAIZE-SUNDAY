@@ -1,0 +1,6 @@
+{
+  "name": "BLAIZE SUNDAY - Songforge",
+  "description": "BLAIZE SUNDAY creative operating system and release orchestration portal",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

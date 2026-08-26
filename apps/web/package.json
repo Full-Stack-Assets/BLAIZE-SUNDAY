@@ -3,25 +3,25 @@
   "version": "0.9.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev -p 3000 -H 0.0.0.0",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3000 -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --test lib/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
-    "@songforge/agents": "workspace:*",
-    "@songforge/canon": "workspace:*",
-    "@songforge/database": "workspace:*",
-    "@songforge/integrations": "workspace:*",
-    "@songforge/llm": "workspace:*",
-    "@songforge/policy": "workspace:*",
-    "@songforge/release": "workspace:*",
-    "@songforge/shared": "workspace:*",
-    "@songforge/video": "workspace:*",
-    "@songforge/voice": "workspace:*",
+    "@songforge/agents": "*",
+    "@songforge/canon": "*",
+    "@songforge/database": "*",
+    "@songforge/integrations": "*",
+    "@songforge/llm": "*",
+    "@songforge/policy": "*",
+    "@songforge/release": "*",
+    "@songforge/shared": "*",
+    "@songforge/video": "*",
+    "@songforge/voice": "*",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -42,6 +42,7 @@
     "postcss": "^8.4.47",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.13.0",
-    "eslint-config-next": "^15.1.0"
+    "eslint-config-next": "^15.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0"
   }
 }

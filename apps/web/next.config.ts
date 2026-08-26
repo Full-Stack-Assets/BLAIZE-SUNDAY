@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../.."),
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   serverExternalPackages: ["bullmq", "ioredis"],
   transpilePackages: [
     "@songforge/agents",

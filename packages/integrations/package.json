@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@songforge/storage": "workspace:*"
+    "@songforge/storage": "*"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

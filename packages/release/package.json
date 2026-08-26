@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
-    "@songforge/database": "workspace:*",
-    "@songforge/shared": "workspace:*"
+    "@songforge/database": "*",
+    "@songforge/shared": "*"
   },
   "devDependencies": {
     "typescript": "^5.9.2",
