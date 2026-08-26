@@ -1,129 +1,209 @@
-name: Deploy
+name: Deploy SongForge Production
 
 on:
-  push:
-    branches: [songforge-lab, main]
-    paths:
-      - "apps/web/**"
-      - "packages/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/deploy.yml"
-      - "apps/web/Dockerfile"
-      - "apps/web/fly.toml"
   workflow_dispatch:
     inputs:
-      force_target:
-        description: "Force target (auto | fly | railway | build-only)"
+      app_name:
+        description: "Existing Fly app name"
         required: true
-        default: "auto"
+        default: "songforge-web"
+        type: string
+      expected_volume:
+        description: "Existing persistent volume name"
+        required: true
+        default: "songforge_data"
+        type: string
+      expected_url:
+        description: "HTTPS URL to verify; blank uses https://<app>.fly.dev"
+        required: false
+        default: ""
+        type: string
+      confirmation:
+        description: "Deployment is allowed only to already-existing resources"
+        required: true
+        default: "CANCEL"
         type: choice
-        options: [auto, fly, railway, build-only]
+        options:
+          - CANCEL
+          - DEPLOY_EXISTING_ONLY
+
+permissions:
+  contents: read
 
 concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  group: songforge-production-${{ inputs.app_name }}
+  cancel-in-progress: false
 
 jobs:
-  detect:
-    name: Detect target
+  deploy:
+    name: Existing-only Fly deployment
+    if: inputs.confirmation == 'DEPLOY_EXISTING_ONLY'
     runs-on: ubuntu-latest
-    outputs:
-      target: ${{ steps.pick.outputs.target }}
-    steps:
-      - id: pick
-        env:
-          FLY: ${{ secrets.FLY_API_TOKEN }}
-          RAILWAY: ${{ secrets.RAILWAY_TOKEN }}
-          FORCE: ${{ github.event.inputs.force_target || 'auto' }}
-        run: |
-          if [ "$FORCE" = "fly" ] || [ "$FORCE" = "railway" ] || [ "$FORCE" = "build-only" ]; then
-            echo "target=$FORCE" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ -n "$FLY" ]; then
-            echo "target=fly" >> "$GITHUB_OUTPUT"
-          elif [ -n "$RAILWAY" ]; then
-            echo "target=railway" >> "$GITHUB_OUTPUT"
-          else
-            echo "target=build-only" >> "$GITHUB_OUTPUT"
-          fi
+    timeout-minutes: 45
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP: ${{ inputs.app_name }}
+      EXPECTED_VOLUME: ${{ inputs.expected_volume }}
+      REQUESTED_URL: ${{ inputs.expected_url }}
 
-  build:
-    name: Build web
-    runs-on: ubuntu-latest
-    needs: detect
-    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: Prisma validate
-        run: pnpm db:validate
-        env:
-          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
-      - name: Generate Prisma client
-        run: pnpm db:generate
-        env:
-          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
-      - name: Build
-        run: pnpm --filter @songforge/web build
-        env:
-          NEXT_TELEMETRY_DISABLED: "1"
-          DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
+      - name: Checkout exact requested revision
+        uses: actions/checkout@v4
 
-  deploy-fly:
-    name: Deploy · Fly.io
-    runs-on: ubuntu-latest
-    needs: [detect, build]
-    if: needs.detect.outputs.target == 'fly'
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy
+      - name: Refuse missing deployment authority
         run: |
-          APP="${{ secrets.FLY_APP_NAME }}"
-          if [ -z "$APP" ]; then APP="songforge-web"; fi
-          flyctl deploy \
+          test -n "$FLY_API_TOKEN" || {
+            echo "FLY_API_TOKEN is not configured; refusing deployment." >&2
+            exit 1
+          }
+
+      - name: Install pinned flyctl
+        run: |
+          curl -fsSL https://fly.io/install.sh | sh -s 0.4.76
+          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+
+      - name: Discover existing resources without creating replacements
+        id: preflight
+        run: |
+          set -euo pipefail
+          flyctl status --app "$APP" --json > /tmp/status.json
+          flyctl machine list --app "$APP" --json > /tmp/machines.json
+          flyctl volumes list --app "$APP" --json > /tmp/volumes.json
+          flyctl secrets list --app "$APP" --json > /tmp/secrets.json
+
+          machine_count=$(jq 'length' /tmp/machines.json)
+          test "$machine_count" -eq 1 || {
+            echo "Expected exactly one existing SongForge machine; found $machine_count. Refusing to create or choose among machines." >&2
+            exit 1
+          }
+          machine_id=$(jq -r '.[0].id' /tmp/machines.json)
+          test -n "$machine_id" && test "$machine_id" != "null"
+
+          jq -e --arg name "$EXPECTED_VOLUME" \
+            'any(.[]; (.name // .Name // "") == $name)' /tmp/volumes.json >/dev/null || {
+              echo "Expected persistent volume is absent; refusing to create a replacement." >&2
+              exit 1
+            }
+          volume_id=$(jq -r --arg name "$EXPECTED_VOLUME" \
+            '.[] | select((.name // .Name // "") == $name) | (.id // .ID)' /tmp/volumes.json | head -n1)
+          test -n "$volume_id" && test "$volume_id" != "null"
+
+          secret_names=$(jq -r '.[] | (.Name // .name // empty)' /tmp/secrets.json)
+          for required in DATABASE_URL ROUTENOTE_CONTROL_PASSPHRASE APPROVAL_API_TOKEN; do
+            printf '%s\n' "$secret_names" | grep -Fx "$required" >/dev/null || {
+              echo "Required production secret name is missing: $required" >&2
+              exit 1
+            }
+          done
+
+          cpus=$(jq -r '.[0].config.guest.cpus // 0' /tmp/machines.json)
+          memory=$(jq -r '.[0].config.guest.memory_mb // 0' /tmp/machines.json)
+          test "$cpus" -ge 2 && test "$memory" -ge 2048 || {
+            echo "Existing compute is smaller than the reviewed 2 CPU / 2048 MiB runtime. Refusing a billing-changing resize." >&2
+            exit 1
+          }
+
+          flyctl ssh console --app "$APP" --machine "$machine_id" \
+            --command 'test ! -e /data/.songforge/routenote/profile.lock' || {
+              echo "RouteNote profile lease is active or could not be inspected; refusing deployment." >&2
+              exit 1
+            }
+
+          url="$REQUESTED_URL"
+          if [ -z "$url" ]; then url="https://$APP.fly.dev"; fi
+          case "$url" in
+            https://*) ;;
+            *) echo "Expected URL must use HTTPS." >&2; exit 1 ;;
+          esac
+
+          echo "machine_id=$machine_id" >> "$GITHUB_OUTPUT"
+          echo "volume_id=$volume_id" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy exact Git revision to existing machine only
+        run: |
+          set -euo pipefail
+          flyctl deploy . \
+            --app "$APP" \
             --config apps/web/fly.toml \
             --dockerfile apps/web/Dockerfile \
-            --app "$APP" \
-            --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+            --remote-only \
+            --update-only \
+            --build-arg "SONGFORGE_BUILD_SHA=$GITHUB_SHA" \
+            --release-command-timeout 10m \
+            --wait-timeout 10m \
+            --yes
 
-  deploy-railway:
-    name: Deploy · Railway
-    runs-on: ubuntu-latest
-    needs: [detect, build]
-    if: needs.detect.outputs.target == 'railway'
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-      - name: Deploy
-        run: |
-          SERVICE="${{ secrets.RAILWAY_SERVICE }}"
-          if [ -z "$SERVICE" ]; then SERVICE="web"; fi
-          railway up --service "$SERVICE" --detach
+      - name: Verify externally reachable HTTPS readiness
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-  build-only-note:
-    name: No deploy secret yet
-    runs-on: ubuntu-latest
-    needs: [detect, build]
-    if: needs.detect.outputs.target == 'build-only'
-    steps:
-      - name: Instructions
+          URL: ${{ steps.preflight.outputs.url }}
         run: |
-          echo "Build succeeded."
-          echo "Add FLY_API_TOKEN or RAILWAY_TOKEN under Settings → Secrets to auto-deploy."
+          set -euo pipefail
+          ready=0
+          for _ in $(seq 1 60); do
+            code=$(curl -sS -o /tmp/readiness.json -w '%{http_code}' "$URL/api/health/readiness" || true)
+            if [ "$code" = "200" ] && jq -e --arg sha "$GITHUB_SHA" '
+              .ok == true and
+              .deploymentSha == $sha and
+              .database == "CONNECTED" and
+              .auth.routeNoteOwnerAuthorityConfigured == true and
+              .routenote.browser.available == true and
+              .routenote.storage.statePrivate == true and
+              .routenote.storage.profilePrivate == true and
+              .routenote.storage.mediaPrivate == true
+            ' /tmp/readiness.json >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1 || {
+            cat /tmp/readiness.json 2>/dev/null || true
+            exit 1
+          }
+          curl -fsS "$URL/api/health/live" >/tmp/live.json
+          jq -e --arg sha "$GITHUB_SHA" '.ok == true and .deploymentSha == $sha' /tmp/live.json
+
+      - name: Verify private volume survives a machine restart
+        env:
+          MACHINE_ID: ${{ steps.preflight.outputs.machine_id }}
+          URL: ${{ steps.preflight.outputs.url }}
+        run: |
+          set -euo pipefail
+          probe="songforge-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          flyctl ssh console --app "$APP" --machine "$MACHINE_ID" \
+            --command "umask 077; printf '%s' '$probe' > /data/.songforge/routenote/.persistence-probe"
+          flyctl machine restart "$MACHINE_ID" --app "$APP" --signal SIGTERM --time 30
+          ready=0
+          for _ in $(seq 1 60); do
+            if curl -fsS "$URL/api/health/readiness" >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+          flyctl ssh console --app "$APP" --machine "$MACHINE_ID" \
+            --command "test \"\$(cat /data/.songforge/routenote/.persistence-probe)\" = '$probe' && rm -f /data/.songforge/routenote/.persistence-probe"
+
+      - name: Record non-secret deployment evidence
+        env:
+          MACHINE_ID: ${{ steps.preflight.outputs.machine_id }}
+          VOLUME_ID: ${{ steps.preflight.outputs.volume_id }}
+          URL: ${{ steps.preflight.outputs.url }}
+        run: |
+          set -euo pipefail
+          browser_version=$(flyctl ssh console --app "$APP" --machine "$MACHINE_ID" --command 'chromium --version' | tail -n1 | tr -d '\r')
+          {
+            echo "## SongForge production evidence"
+            echo "- URL: $URL"
+            echo "- Deployment SHA: $GITHUB_SHA"
+            echo "- Existing Fly app: $APP"
+            echo "- Existing machine ID: $MACHINE_ID"
+            echo "- Existing volume ID: $VOLUME_ID"
+            echo "- Browser: $browser_version"
+            echo "- Production secret names verified: DATABASE_URL, ROUTENOTE_CONTROL_PASSPHRASE, APPROVAL_API_TOKEN"
+            echo "- Migrations: prisma migrate deploy release command completed"
+            echo "- Persistent volume: restart probe passed"
+            echo "- RouteNote final distribution: NOT PERFORMED"
+          } >> "$GITHUB_STEP_SUMMARY"

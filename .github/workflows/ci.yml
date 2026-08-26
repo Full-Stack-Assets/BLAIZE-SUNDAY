@@ -8,7 +8,10 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+      - ".dockerignore"
+      - ".env.example"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/deploy.yml"
   push:
     branches: [main, songforge-lab]
     paths:
@@ -17,7 +20,10 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+      - ".dockerignore"
+      - ".env.example"
       - ".github/workflows/ci.yml"
+      - ".github/workflows/deploy.yml"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -25,9 +31,9 @@ concurrency:
 
 jobs:
   check:
-    name: Typecheck · Test · Build
+    name: Typecheck · Test · Build · Runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DATABASE_URL: postgresql://songforge:songforge@localhost:5432/songforge?schema=public
 
@@ -74,23 +80,54 @@ jobs:
       - name: Verify standalone server layout
         run: test -f apps/web/.next/standalone/apps/web/server.js
 
-      - name: Build production container
-        run: docker build -f apps/web/Dockerfile -t songforge-web-ci .
-
-      - name: Verify production container runtime
+      - name: Build exact-revision production container
         run: |
-          docker run --rm --entrypoint sh songforge-web-ci -c \
-            'test -f /app/apps/web/server.js && command -v ffprobe && command -v whisper-cli && test -s /models/ggml-base.en.bin'
+          docker build \
+            --build-arg SONGFORGE_BUILD_SHA="$GITHUB_SHA" \
+            -f apps/web/Dockerfile \
+            -t songforge-web-ci .
 
-      - name: Smoke production container
+      - name: Verify production runtime inventory
+        run: |
+          docker run --rm --entrypoint sh songforge-web-ci -ec '
+            test -f /app/apps/web/server.js
+            test -f /app/packages/database/prisma/schema.prisma
+            test -f /usr/share/novnc/vnc.html
+            command -v ffprobe
+            command -v whisper-cli
+            command -v chromium
+            command -v Xvfb
+            command -v x11vnc
+            command -v websockify
+            command -v nginx
+            command -v tini
+            command -v su-exec
+            command -v prisma
+            test -s /models/ggml-base.en.bin
+            chromium --version
+            nginx -t -c /app/apps/web/docker/nginx.conf
+          '
+
+      - name: Prove Chromium launches without disabling its sandbox
+        run: |
+          docker run --rm --entrypoint sh songforge-web-ci -ec '
+            timeout 30 su-exec nextjs:nodejs chromium \
+              --headless=new \
+              --disable-gpu \
+              --disable-dev-shm-usage \
+              --dump-dom about:blank >/tmp/chromium-smoke.html
+            grep -qi "html" /tmp/chromium-smoke.html
+          '
+
+      - name: Smoke production container and owner-gated desktop
         run: |
           cid=$(docker run -d --rm \
-            -e DATABASE_URL=postgresql://songforge:songforge@127.0.0.1:5432/songforge?schema=public \
+            -e ROUTENOTE_CONTROL_PASSPHRASE=ci-owner-passphrase \
             -p 3000:3000 songforge-web-ci)
           trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
           ok=0
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/video-lab >/dev/null; then
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/health/live >/tmp/live.json; then
               ok=1
               break
             fi
@@ -100,9 +137,15 @@ jobs:
             docker logs "$cid"
             exit 1
           fi
+          jq -e --arg sha "$GITHUB_SHA" '.ok == true and .deploymentSha == $sha' /tmp/live.json
+          code=$(curl -sS -o /tmp/desktop-denied -w '%{http_code}' \
+            http://127.0.0.1:3000/routenote-desktop/vnc.html)
+          test "$code" = "401"
+          curl -sS http://127.0.0.1:3000/api/health/readiness >/tmp/readiness.json
+          jq -e '.routenote.browser.available == true' /tmp/readiness.json
 
   persist:
-    name: Postgres persist
+    name: Postgres migrations · persistence tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -130,6 +173,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
-      - run: pnpm db:migrate
-      - run: pnpm db:seed
+      - name: Apply deterministic migrations
+        run: pnpm db:migrate
+      - name: Seed test database only
+        run: pnpm db:seed
       - run: pnpm --filter @songforge/agents test
