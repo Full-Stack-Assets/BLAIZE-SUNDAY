@@ -101,10 +101,19 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     };
   }
 
-  if (code === "ROUTENOTE_RELEASE_NOT_FOUND") {
+  if (code === "ROUTENOTE_RELEASE_NOT_FOUND" || code === "ROUTENOTE_RUN_NOT_FOUND") {
     return {
       status: 404,
-      body: { ok: false, error: { code, message: "The selected SongForge release was not found." } }
+      body: {
+        ok: false,
+        error: {
+          code,
+          message:
+            code === "ROUTENOTE_RUN_NOT_FOUND"
+              ? "The RouteNote automation run was not found."
+              : "The selected SongForge release was not found."
+        }
+      }
     };
   }
 
@@ -136,18 +145,38 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     };
   }
 
-  if (code === "ROUTENOTE_RELEASE_NOT_READY" || code === "ROUTENOTE_CONTEXT_NOT_FOUND") {
+  if (
+    code === "ROUTENOTE_RELEASE_NOT_READY" ||
+    code === "ROUTENOTE_CONTEXT_NOT_FOUND" ||
+    code === "ROUTENOTE_APPROVAL_NOT_FOUND" ||
+    code === "ROUTENOTE_APPROVAL_PAYLOAD_MISMATCH" ||
+    code === "ROUTENOTE_ACTION_PACKAGE_STALE" ||
+    code === "ROUTENOTE_PACKAGE_NOT_AUTHORIZABLE" ||
+    code === "ROUTENOTE_PACKAGE_NOT_AUTHORIZED" ||
+    code === "APPROVAL_EXPIRED"
+  ) {
+    const messages: Record<string, string> = {
+      ROUTENOTE_RELEASE_NOT_READY: "The selected release is not ready for RouteNote draft preparation.",
+      ROUTENOTE_CONTEXT_NOT_FOUND: "The selected release is missing required preparation evidence.",
+      ROUTENOTE_APPROVAL_NOT_FOUND: "The current RouteNote package has no valid approval request.",
+      ROUTENOTE_APPROVAL_PAYLOAD_MISMATCH: "The RouteNote approval no longer matches the current package.",
+      ROUTENOTE_ACTION_PACKAGE_STALE: "The RouteNote package changed and must be preflighted again.",
+      ROUTENOTE_PACKAGE_NOT_AUTHORIZABLE: "The current RouteNote package cannot be authorized in its present state.",
+      ROUTENOTE_PACKAGE_NOT_AUTHORIZED: "Authorize the exact current RouteNote package before starting automation.",
+      APPROVAL_EXPIRED: "The RouteNote package authorization expired. Preflight and authorize the current package again."
+    };
     return {
       status: 409,
+      body: { ok: false, error: { code: code as string, message: messages[code as string]! } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DRAFT_RECEIPT_MISMATCH") {
+    return {
+      status: 502,
       body: {
         ok: false,
-        error: {
-          code,
-          message:
-            code === "ROUTENOTE_RELEASE_NOT_READY"
-              ? "The selected release is not ready for RouteNote draft preparation."
-              : "The selected release is missing required preparation evidence."
-        }
+        error: { code, message: "The RouteNote worker receipt did not match the authorized package. Operator review is required." }
       }
     };
   }
