@@ -17,11 +17,19 @@ import {
   type LaunchRouteNoteBrowserInput,
   type RouteNoteBrowserSession
 } from "../../routenote-runner/src/browser.ts";
+import { acquireRouteNoteProfileLease } from "../../routenote-runner/src/profile-lock.ts";
 import {
   prepareRouteNoteJob,
   type RouteNoteReleaseServiceLike
 } from "../../routenote-runner/src/job.ts";
-import { persistDraftReadyReceipt } from "../../routenote-runner/src/receipt.ts";
+import {
+  loadDraftReadyReceipt,
+  persistDraftReadyReceipt
+} from "../../routenote-runner/src/receipt.ts";
+import {
+  routeNoteCacheDir,
+  routeNoteProfileDir
+} from "../../routenote-runner/src/state.ts";
 import {
   mapRouteNoteControlError,
   projectRouteNoteReadiness,
@@ -46,6 +54,8 @@ export interface RouteNoteControlDependencies {
   prepareJob: typeof prepareRouteNoteJob;
   executeWorkflow: typeof executeRouteNoteWorkflow;
   persistReceipt: typeof persistDraftReadyReceipt;
+  loadReceipt?: typeof loadDraftReadyReceipt;
+  acquireProfileLease?: () => Promise<{ release(): Promise<void> }>;
 }
 
 class RouteNoteControlServerError extends Error {
@@ -77,6 +87,40 @@ function authenticationRuntime(env: NodeJS.ProcessEnv) {
   };
 }
 
+const BROWSER_ENV_KEYS = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LOGNAME",
+  "SHELL",
+  "TMPDIR",
+  "LANG",
+  "LC_ALL",
+  "TZ",
+  "DISPLAY",
+  "XDG_RUNTIME_DIR",
+  "DBUS_SESSION_BUS_ADDRESS",
+  "CHROME_DEVEL_SANDBOX"
+] as const;
+
+function browserEnvironment(
+  dependencies: RouteNoteControlDependencies
+): NodeJS.ProcessEnv {
+  const sanitized: NodeJS.ProcessEnv = {};
+  for (const key of BROWSER_ENV_KEYS) {
+    const value = dependencies.env[key];
+    if (value) sanitized[key] = value;
+  }
+  sanitized.NODE_ENV = dependencies.env.NODE_ENV;
+  sanitized.ROUTENOTE_PROFILE_DIR = routeNoteProfileDir(
+    dependencies.workspaceRoot,
+    dependencies.env
+  );
+  const executable = dependencies.env.ROUTENOTE_BROWSER_EXECUTABLE_PATH?.trim();
+  if (executable) sanitized.ROUTENOTE_BROWSER_EXECUTABLE_PATH = executable;
+  return sanitized;
+}
+
 function launchInput(
   dependencies: RouteNoteControlDependencies,
   headless: boolean
@@ -85,7 +129,8 @@ function launchInput(
     workspaceRoot: dependencies.workspaceRoot,
     headless,
     initialUrl: ROUTENOTE_HOME_URL,
-    env: dependencies.env
+    profileDir: routeNoteProfileDir(dependencies.workspaceRoot, dependencies.env),
+    env: browserEnvironment(dependencies)
   };
 }
 
@@ -93,7 +138,21 @@ async function closeQuietly(session: RouteNoteBrowserSession): Promise<void> {
   try {
     await session.close();
   } catch {
-    // Preserve the original provider/control failure.
+    // Preserve the original provider/control failure. A stuck browser keeps the
+    // profile lease held by the surrounding operation and therefore fails closed.
+  }
+}
+
+async function withBrowserOperation<T>(
+  dependencies: RouteNoteControlDependencies,
+  operation: () => Promise<T>
+): Promise<T> {
+  if (!dependencies.acquireProfileLease) return operation();
+  const lease = await dependencies.acquireProfileLease();
+  try {
+    return await operation();
+  } finally {
+    await lease.release();
   }
 }
 
@@ -142,31 +201,57 @@ function sanitizeReceipt(receipt: RouteNoteExecutionReceipt): RouteNoteDraftSumm
   };
 }
 
+function receiptFromEvent(
+  event: { type: string; evidence: unknown },
+  payloadHash: string
+): RouteNoteExecutionReceipt | null {
+  if (event.type !== "ROUTENOTE_DRAFT_READY") return null;
+  if (typeof event.evidence !== "object" || event.evidence === null) return null;
+  const evidence = event.evidence as {
+    payloadHash?: unknown;
+    receipt?: unknown;
+  };
+  if (
+    typeof evidence.payloadHash !== "string" ||
+    evidence.payloadHash.toLowerCase() !== payloadHash.toLowerCase() ||
+    typeof evidence.receipt !== "object" ||
+    evidence.receipt === null
+  ) {
+    return null;
+  }
+  const receipt = evidence.receipt as RouteNoteExecutionReceipt;
+  return receipt.outcome === "DRAFT_READY" ? receipt : null;
+}
+
 export async function checkRouteNoteConnection(
   dependencies: RouteNoteControlDependencies
 ): Promise<RouteNoteConnectionResult> {
-  const session = await dependencies.launchBrowser(launchInput(dependencies, true));
-  try {
-    const authenticated = await dependencies.checkAuthenticated(session.port);
-    return { status: authenticated ? "CONNECTED" : "LOGIN_REQUIRED" };
-  } finally {
-    await closeQuietly(session);
-  }
+  return withBrowserOperation(dependencies, async () => {
+    const session = await dependencies.launchBrowser(launchInput(dependencies, true));
+    try {
+      const authenticated = await dependencies.checkAuthenticated(session.port);
+      return { status: authenticated ? "CONNECTED" : "LOGIN_REQUIRED" };
+    } finally {
+      await closeQuietly(session);
+    }
+  });
 }
 
 export async function loginRouteNote(
   dependencies: RouteNoteControlDependencies
 ): Promise<RouteNoteConnectionResult> {
-  const session = await dependencies.launchBrowser(launchInput(dependencies, false));
-  try {
-    await dependencies.waitForAuthentication(
-      session.port,
-      authenticationRuntime(dependencies.env)
-    );
-    return { status: "CONNECTED" };
-  } finally {
-    await closeQuietly(session);
-  }
+  return withBrowserOperation(dependencies, async () => {
+    const session = await dependencies.launchBrowser(launchInput(dependencies, false));
+    try {
+      await dependencies.waitForAuthentication(
+        session.port,
+        authenticationRuntime(dependencies.env)
+      );
+      return { status: "CONNECTED" };
+    } finally {
+      await closeQuietly(session);
+    }
+  });
 }
 
 export async function getRouteNoteControlSnapshot(
@@ -223,32 +308,61 @@ export async function prepareRouteNoteDraft(
     throw new RouteNoteControlServerError("ROUTENOTE_RELEASE_NOT_READY");
   }
 
-  const prepared = await dependencies.prepareJob(normalizedReleaseId, {
-    repository: dependencies.repository,
-    releaseService: dependencies.releaseService,
-    workspaceRoot: dependencies.workspaceRoot
-  });
-  const session = await dependencies.launchBrowser(
-    launchInput(dependencies, envFlag(dependencies.env, "ROUTENOTE_HEADLESS"))
-  );
+  return withBrowserOperation(dependencies, async () => {
+    const prepared = await dependencies.prepareJob(normalizedReleaseId, {
+      repository: dependencies.repository,
+      releaseService: dependencies.releaseService,
+      workspaceRoot: dependencies.workspaceRoot,
+      cacheDir: routeNoteCacheDir(dependencies.workspaceRoot, dependencies.env)
+    });
 
-  try {
-    const receipt = await dependencies.executeWorkflow(prepared.job, session.port);
-    await dependencies.persistReceipt(
-      dependencies.repository,
-      receipt,
-      dependencies.workspaceRoot
-    );
+    if (dependencies.loadReceipt) {
+      const diskReceipt = await dependencies.loadReceipt(
+        normalizedReleaseId,
+        prepared.job.payloadHash,
+        dependencies.workspaceRoot,
+        dependencies.env
+      );
+      const events = await dependencies.repository.listReleaseEvents(normalizedReleaseId);
+      const eventReceipt = events
+        .map(event => receiptFromEvent(event, prepared.job.payloadHash))
+        .find((receipt): receipt is RouteNoteExecutionReceipt => receipt !== null);
 
-    if (envFlag(dependencies.env, "ROUTENOTE_CLOSE_BROWSER")) {
-      await closeQuietly(session);
+      if (eventReceipt && !diskReceipt) {
+        throw new RouteNoteControlServerError("ROUTENOTE_STATE_POLICY_VIOLATION");
+      }
+      if (diskReceipt) {
+        await dependencies.persistReceipt(
+          dependencies.repository,
+          diskReceipt,
+          dependencies.workspaceRoot
+        );
+        return sanitizeReceipt(diskReceipt);
+      }
     }
 
-    return sanitizeReceipt(receipt);
-  } catch (error) {
-    await closeQuietly(session);
-    throw error;
-  }
+    const session = await dependencies.launchBrowser(
+      launchInput(dependencies, envFlag(dependencies.env, "ROUTENOTE_HEADLESS"))
+    );
+
+    try {
+      const receipt = await dependencies.executeWorkflow(prepared.job, session.port);
+      await dependencies.persistReceipt(
+        dependencies.repository,
+        receipt,
+        dependencies.workspaceRoot
+      );
+
+      if (envFlag(dependencies.env, "ROUTENOTE_CLOSE_BROWSER")) {
+        await closeQuietly(session);
+      }
+
+      return sanitizeReceipt(receipt);
+    } catch (error) {
+      await closeQuietly(session);
+      throw error;
+    }
+  });
 }
 
 async function productionCheckAuthenticated(port: RouteNoteBrowserPort): Promise<boolean> {
@@ -274,6 +388,8 @@ export function createProductionRouteNoteControlDependencies(
     checkAuthenticated: productionCheckAuthenticated,
     prepareJob: prepareRouteNoteJob,
     executeWorkflow: executeRouteNoteWorkflow,
-    persistReceipt: persistDraftReadyReceipt
+    persistReceipt: persistDraftReadyReceipt,
+    loadReceipt: loadDraftReadyReceipt,
+    acquireProfileLease: () => acquireRouteNoteProfileLease(workspaceRoot, env)
   };
 }

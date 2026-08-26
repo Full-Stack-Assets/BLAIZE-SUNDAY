@@ -5,6 +5,7 @@ import {
   parsePrepareDraftBody,
   toRouteNoteApiError
 } from "../../../../../lib/routenote-api.ts";
+import { requireSameOriginMutation } from "../../../../../lib/routenote-request.server.ts";
 import {
   createWebRouteNoteControlDependencies,
   requireWebRouteNoteControlAuthority
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    requireSameOriginMutation(request);
     requireWebRouteNoteControlAuthority(request);
     const rawBody = await request.json().catch(() => null);
     const { releaseId } = parsePrepareDraftBody(rawBody);

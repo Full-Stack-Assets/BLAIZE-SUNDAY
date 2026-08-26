@@ -55,65 +55,56 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
   if (code === "ROUTENOTE_API_INVALID_REQUEST") {
     return {
       status: 400,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "A non-empty SongForge release ID is required."
-        }
-      }
+      body: { ok: false, error: { code, message: "A non-empty SongForge release ID is required." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_CONTROL_ORIGIN_REJECTED") {
+    return {
+      status: 403,
+      body: { ok: false, error: { code, message: "RouteNote control request origin was rejected." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_LOCKED") {
     return {
       status: 401,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "Unlock RouteNote controls to continue."
-        }
-      }
+      body: { ok: false, error: { code, message: "Unlock RouteNote controls to continue." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_AUTH_INVALID") {
     return {
       status: 401,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "The RouteNote control passphrase is not valid."
-        }
-      }
+      body: { ok: false, error: { code, message: "The RouteNote control passphrase is not valid." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED") {
     return {
       status: 503,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "Owner authorization is not configured for RouteNote web controls."
-        }
-      }
+      body: { ok: false, error: { code, message: "Owner authorization is not configured for RouteNote web controls." } }
     };
   }
 
   if (code === "ROUTENOTE_RELEASE_NOT_FOUND") {
     return {
       status: 404,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "The selected SongForge release was not found."
-        }
-      }
+      body: { ok: false, error: { code, message: "The selected SongForge release was not found." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_PROFILE_BUSY") {
+    return {
+      status: 409,
+      body: { ok: false, error: { code, message: "Another RouteNote browser operation is still active." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_STATE_POLICY_VIOLATION") {
+    return {
+      status: 503,
+      body: { ok: false, error: { code, message: "RouteNote private state failed its production safety check." } }
     };
   }
 
@@ -144,12 +135,6 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
 
   return {
     status,
-    body: {
-      ok: false,
-      error: {
-        code: mapped.code,
-        message: mapped.message
-      }
-    }
+    body: { ok: false, error: { code: mapped.code, message: mapped.message } }
   };
 }
