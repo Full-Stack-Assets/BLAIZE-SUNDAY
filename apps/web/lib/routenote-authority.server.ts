@@ -26,8 +26,14 @@ function digest(value: string): Buffer {
   return createHash("sha256").update(value).digest();
 }
 
-function authorityToken(secret: string): string {
-  return createHmac("sha256", secret).update(AUTHORITY_CONTEXT).digest("hex");
+function authoritySignature(secret: string, expiresAtSeconds: number): string {
+  return createHmac("sha256", secret)
+    .update(`${AUTHORITY_CONTEXT}:${expiresAtSeconds}`)
+    .digest("hex");
+}
+
+function authorityToken(secret: string, expiresAtSeconds: number): string {
+  return `${expiresAtSeconds}.${authoritySignature(secret, expiresAtSeconds)}`;
 }
 
 function cookieValue(cookieHeader: string, name: string): string | null {
@@ -53,20 +59,24 @@ export function verifyRouteNotePassphrase(
 
 export function createRouteNoteAuthorityCookie(
   env: NodeJS.ProcessEnv,
-  maxAgeSeconds: number = 12 * 60 * 60
+  maxAgeSeconds: number = 12 * 60 * 60,
+  nowSeconds: number = Math.floor(Date.now() / 1000)
 ): string {
   const secret = configuredSecret(env);
   if (!secret) {
     throw new RouteNoteAuthorityError("ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED");
   }
 
+  const maxAge = Math.max(1, Math.floor(maxAgeSeconds));
+  const expiresAtSeconds = Math.floor(nowSeconds) + maxAge;
   const secure = env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${ROUTENOTE_CONTROL_COOKIE}=${authorityToken(secret)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.max(1, Math.floor(maxAgeSeconds))}${secure}`;
+  return `${ROUTENOTE_CONTROL_COOKIE}=${authorityToken(secret, expiresAtSeconds)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }
 
 export function verifyRouteNoteAuthority(
   cookieHeader: string,
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
+  nowSeconds: number = Math.floor(Date.now() / 1000)
 ): boolean {
   if (!routeNoteAuthorityRequired(env)) return true;
   const secret = configuredSecret(env);
@@ -74,9 +84,22 @@ export function verifyRouteNoteAuthority(
 
   const supplied = cookieValue(cookieHeader, ROUTENOTE_CONTROL_COOKIE);
   if (!supplied) return false;
-  const expected = authorityToken(secret);
-  if (supplied.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+
+  const [expiryText, suppliedSignature, ...extra] = supplied.split(".");
+  if (extra.length > 0 || !expiryText || !suppliedSignature) return false;
+  if (!/^\d+$/.test(expiryText) || !/^[a-f0-9]{64}$/.test(suppliedSignature)) {
+    return false;
+  }
+
+  const expiresAtSeconds = Number(expiryText);
+  if (!Number.isSafeInteger(expiresAtSeconds)) return false;
+  if (expiresAtSeconds <= Math.floor(nowSeconds)) return false;
+
+  const expectedSignature = authoritySignature(secret, expiresAtSeconds);
+  return timingSafeEqual(
+    Buffer.from(suppliedSignature),
+    Buffer.from(expectedSignature)
+  );
 }
 
 export function requireRouteNoteControlAuthority(
