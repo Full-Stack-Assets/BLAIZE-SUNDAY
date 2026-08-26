@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 class DesktopSessionInputError extends Error {
-  readonly code = "ROUTENOTE_API_INVALID_REQUEST";
+  readonly code = "ROUTENOTE_DESKTOP_SESSION_INPUT_INVALID";
 }
 
 function parseMode(value: unknown): RouteNoteDesktopMode {
