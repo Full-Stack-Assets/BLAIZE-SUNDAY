@@ -230,4 +230,7 @@ jobs:
         run: pnpm db:migrate
       - name: Seed test database only
         run: pnpm db:seed
-      - run: pnpm --filter @songforge/agents test
+      - name: Verify agent persistence
+        run: pnpm --filter @songforge/agents test
+      - name: Verify RouteNote durable run ledger
+        run: RUN_POSTGRES_TESTS=1 pnpm --filter @songforge/web exec node --test lib/routenote-run-store-postgres.test.ts
