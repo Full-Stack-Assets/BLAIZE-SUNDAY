@@ -5,13 +5,17 @@ import {
   parsePrepareDraftBody,
   toRouteNoteApiError
 } from "../../../../../lib/routenote-api.ts";
-import { createWebRouteNoteControlDependencies } from "../../../../../lib/routenote-runtime.server.ts";
+import {
+  createWebRouteNoteControlDependencies,
+  requireWebRouteNoteControlAuthority
+} from "../../../../../lib/routenote-runtime.server.ts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    requireWebRouteNoteControlAuthority(request);
     const rawBody = await request.json().catch(() => null);
     const { releaseId } = parsePrepareDraftBody(rawBody);
     const draft = await prepareRouteNoteDraft(
