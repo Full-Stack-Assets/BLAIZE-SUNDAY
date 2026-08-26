@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { prepareRouteNoteDraft } from "../../../../../lib/routenote-control.server.ts";
-import {
-  parsePrepareDraftBody,
-  toRouteNoteApiError
-} from "../../../../../lib/routenote-api.ts";
+import { parsePrepareDraftBody, toRouteNoteApiError } from "../../../../../lib/routenote-api.ts";
 import { requireSameOriginMutation } from "../../../../../lib/routenote-request.server.ts";
+import { enqueueRouteNoteRun } from "../../../../../lib/routenote-run.server.ts";
 import {
-  createWebRouteNoteControlDependencies,
+  createWebRouteNoteRunControlDependencies,
+  createWebRouteNoteRunStore,
   requireWebRouteNoteControlAuthority
 } from "../../../../../lib/routenote-runtime.server.ts";
 
@@ -18,13 +16,13 @@ export async function POST(request: Request) {
   try {
     requireSameOriginMutation(request);
     requireWebRouteNoteControlAuthority(request);
-    const rawBody = await request.json().catch(() => null);
-    const { releaseId } = parsePrepareDraftBody(rawBody);
-    const draft = await prepareRouteNoteDraft(
+    const { releaseId } = parsePrepareDraftBody(await request.json().catch(() => null));
+    const run = await enqueueRouteNoteRun(
       releaseId,
-      createWebRouteNoteControlDependencies()
+      createWebRouteNoteRunControlDependencies(),
+      createWebRouteNoteRunStore()
     );
-    return NextResponse.json({ ok: true, draft });
+    return NextResponse.json({ ok: true, run }, { status: run.status === "QUEUED" ? 202 : 200 });
   } catch (error) {
     const mapped = toRouteNoteApiError(error);
     return NextResponse.json(mapped.body, { status: mapped.status });
