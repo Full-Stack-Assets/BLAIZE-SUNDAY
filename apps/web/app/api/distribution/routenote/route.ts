@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 
 import { getRouteNoteControlSnapshot } from "../../../../lib/routenote-control.server.ts";
 import { toRouteNoteApiError } from "../../../../lib/routenote-api.ts";
-import { createWebRouteNoteControlDependencies } from "../../../../lib/routenote-runtime.server.ts";
+import {
+  createWebRouteNoteControlDependencies,
+  requireWebRouteNoteControlAuthority
+} from "../../../../lib/routenote-runtime.server.ts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    requireWebRouteNoteControlAuthority(request);
     const snapshot = await getRouteNoteControlSnapshot(
       createWebRouteNoteControlDependencies()
     );
