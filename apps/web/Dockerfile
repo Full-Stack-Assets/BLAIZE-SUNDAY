@@ -51,9 +51,9 @@ ENV SONGFORGE_BUILD_SHA=$SONGFORGE_BUILD_SHA
 
 RUN apk add --no-cache \
       openssl ffmpeg libstdc++ ca-certificates \
-      chromium xorg-server-xvfb x11vnc novnc websockify nginx tini su-exec \
+      chromium xvfb x11vnc novnc websockify nginx tini su-exec \
       dbus font-noto \
- && npm install --global prisma@5.18.0 \
+ && npm install --global prisma@5.22.0 \
  && addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 --ingroup nodejs nextjs \
  && mkdir -p /home/nextjs /app/apps/web/docker /run/nginx \
