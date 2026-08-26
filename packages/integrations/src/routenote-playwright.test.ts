@@ -139,6 +139,17 @@ test("Playwright adapter tries locator candidates in order until a usable fallba
   assert.ok(page.events.includes('fill:css:[name="release_title"]=Chrome Receipt'));
 });
 
+test("Playwright adapter skips ambiguous action candidates and uses a unique fallback", async () => {
+  const page = new FakePage();
+  page.getByLabel("Release Title").countValue = 2;
+  const port = createRouteNotePlaywrightPort(page);
+
+  await port.fill(fallbackLocator, "Chrome Receipt");
+
+  assert.equal(page.events.includes("fill:label:Release Title=Chrome Receipt"), false);
+  assert.ok(page.events.includes('fill:css:[name="release_title"]=Chrome Receipt'));
+});
+
 test("Playwright adapter fails with a stable UI-contract error when no candidate resolves", async () => {
   const page = new FakePage();
   page.getByLabel("Release Title").countValue = 0;
