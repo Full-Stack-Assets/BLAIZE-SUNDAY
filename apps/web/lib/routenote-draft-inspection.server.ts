@@ -167,6 +167,11 @@ export async function startRouteNoteDraftInspection(
 
   const workspaceRoot = routeNoteWorkspaceRoot(process.cwd(), env);
   const receipt = await latestDurableDraftReceipt(normalizedReleaseId, workspaceRoot, env);
+  const releaseUrl = receipt.routeNoteReleaseUrl;
+  if (!releaseUrl) {
+    throw new RouteNoteInspectionError("ROUTENOTE_STATE_POLICY_VIOLATION");
+  }
+
   const lease = await acquireRouteNoteProfileLease(workspaceRoot, env);
   let session: RouteNoteBrowserSession | null = null;
 
@@ -174,11 +179,11 @@ export async function startRouteNoteDraftInspection(
     session = await launchRouteNoteBrowser({
       workspaceRoot,
       headless: false,
-      initialUrl: receipt.routeNoteReleaseUrl,
+      initialUrl: releaseUrl,
       profileDir: routeNoteProfileDir(workspaceRoot, env),
       env: inspectionBrowserEnvironment(workspaceRoot, env)
     });
-    await session.port.goto(receipt.routeNoteReleaseUrl);
+    await session.port.goto(releaseUrl);
     if (await session.port.isVisible(ROUTENOTE_SELECTORS.loginSurface)) {
       throw new RouteNoteInspectionError("ROUTENOTE_INSPECTION_LOGIN_REQUIRED");
     }
