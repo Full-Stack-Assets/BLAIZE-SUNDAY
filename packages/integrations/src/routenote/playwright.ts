@@ -58,18 +58,35 @@ async function resolveRequired(
 ): Promise<PlaywrightLocatorLike> {
   for (const candidate of target.candidates) {
     const locator = toPageLocator(page, candidate);
-    if (!locator || (await locator.count()) < 1) continue;
+    if (!locator) continue;
+
+    // Action locators must resolve to exactly one provider element. Accepting a
+    // multi-match would let Playwright strict-mode fail later or, worse, target
+    // the wrong repeated track/store field.
+    const count = await locator.count();
+    if (count !== 1) continue;
     if (requireVisible && !(await locator.isVisible())) continue;
     return locator;
   }
 
   throw new RouteNoteBrowserError(
     "ROUTENOTE_UI_CONTRACT_CHANGED",
-    `No usable RouteNote UI locator found for ${target.operation}`
+    `No unique usable RouteNote UI locator found for ${target.operation}`
   );
 }
 
-async function resolveOptional(
+async function resolveOptionalSingle(
+  page: PlaywrightPageLike,
+  target: RouteNoteLocator
+): Promise<PlaywrightLocatorLike | null> {
+  for (const candidate of target.candidates) {
+    const locator = toPageLocator(page, candidate);
+    if (locator && (await locator.count()) === 1) return locator;
+  }
+  return null;
+}
+
+async function resolveOptionalMany(
   page: PlaywrightPageLike,
   target: RouteNoteLocator
 ): Promise<PlaywrightLocatorLike | null> {
@@ -95,7 +112,7 @@ export function createRouteNotePlaywrightPort(
     async isVisible(target) {
       for (const candidate of target.candidates) {
         const locator = toPageLocator(page, candidate);
-        if (!locator || (await locator.count()) < 1) continue;
+        if (!locator || (await locator.count()) !== 1) continue;
         if (await locator.isVisible()) return true;
       }
       return false;
@@ -127,18 +144,18 @@ export function createRouteNotePlaywrightPort(
 
     async setInputFiles(target, paths) {
       // File inputs may be intentionally hidden while still being valid upload
-      // targets, so existence rather than visibility is the contract here.
+      // targets, so existence/uniqueness rather than visibility is the contract.
       const locator = await resolveRequired(page, target, false);
       await locator.setInputFiles(paths);
     },
 
     async text(target) {
-      const locator = await resolveOptional(page, target);
+      const locator = await resolveOptionalSingle(page, target);
       return locator ? locator.textContent() : null;
     },
 
     async allText(target) {
-      const locator = await resolveOptional(page, target);
+      const locator = await resolveOptionalMany(page, target);
       return locator ? locator.allTextContents() : [];
     },
 
