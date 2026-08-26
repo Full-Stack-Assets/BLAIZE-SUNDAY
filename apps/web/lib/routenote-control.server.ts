@@ -3,7 +3,8 @@ import {
   ROUTENOTE_SELECTORS,
   executeRouteNoteWorkflow,
   type RouteNoteBrowserPort,
-  type RouteNoteExecutionReceipt
+  type RouteNoteExecutionReceipt,
+  type RouteNoteExecutionStep
 } from "@songforge/integrations";
 import {
   PrismaReleaseRepository,
@@ -19,8 +20,7 @@ import {
 } from "../../routenote-runner/src/browser.ts";
 import { acquireRouteNoteProfileLease } from "../../routenote-runner/src/profile-lock.ts";
 import {
-  prepareRouteNoteJob,
-  type RouteNoteReleaseServiceLike
+  prepareRouteNoteJob
 } from "../../routenote-runner/src/job.ts";
 import {
   loadDraftReadyReceipt,
@@ -47,7 +47,7 @@ export interface RouteNoteControlDependencies {
   workspaceRoot: string;
   env: NodeJS.ProcessEnv;
   repository: ReleaseRepository;
-  releaseService: RouteNoteReleaseServiceLike;
+  releaseService: Pick<ReleaseCommandService, "prepareDistribution" | "resolveApproval">;
   launchBrowser(input: LaunchRouteNoteBrowserInput): Promise<RouteNoteBrowserSession>;
   waitForAuthentication: typeof waitForRouteNoteAuthentication;
   checkAuthenticated(port: RouteNoteBrowserPort): Promise<boolean>;
@@ -56,6 +56,10 @@ export interface RouteNoteControlDependencies {
   persistReceipt: typeof persistDraftReadyReceipt;
   loadReceipt?: typeof loadDraftReadyReceipt;
   acquireProfileLease?: () => Promise<{ release(): Promise<void> }>;
+}
+
+export interface RouteNoteDraftExecutionOptions {
+  onStep?: (step: RouteNoteExecutionStep) => void | Promise<void>;
 }
 
 class RouteNoteControlServerError extends Error {
@@ -301,7 +305,8 @@ export async function getRouteNoteControlSnapshot(
 
 export async function prepareRouteNoteDraft(
   releaseId: string,
-  dependencies: RouteNoteControlDependencies
+  dependencies: RouteNoteControlDependencies,
+  options: RouteNoteDraftExecutionOptions = {}
 ): Promise<RouteNoteDraftSummary> {
   const normalizedReleaseId = releaseId.trim();
   if (!normalizedReleaseId) {
@@ -364,7 +369,9 @@ export async function prepareRouteNoteDraft(
     );
 
     try {
-      const receipt = await dependencies.executeWorkflow(prepared.job, session.port);
+      const receipt = await dependencies.executeWorkflow(prepared.job, session.port, {
+        onStep: options.onStep
+      });
       await dependencies.persistReceipt(
         dependencies.repository,
         receipt,
