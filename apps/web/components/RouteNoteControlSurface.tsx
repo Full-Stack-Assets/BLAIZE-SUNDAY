@@ -65,10 +65,15 @@ export function RouteNoteControlSurface() {
         return;
       }
 
-      // Authority is valid if the snapshot reached normal RouteNote control errors.
+      // A normal provider/runtime error proves the owner authority middleware was
+      // passed; keep the control panel available so it can show the safe error.
       setAuthority("READY");
     } catch {
-      setAuthority("READY");
+      setAuthority("LOCKED");
+      setError({
+        code: "ROUTENOTE_CONTROL_AUTH_CHECK_FAILED",
+        message: "SongForge could not verify RouteNote owner authority."
+      });
     }
   }
 
