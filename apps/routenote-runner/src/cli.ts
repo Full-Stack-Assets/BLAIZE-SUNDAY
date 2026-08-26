@@ -1,16 +1,10 @@
+import { RouteNoteRunnerError } from "./errors.ts";
+
+export { RouteNoteRunnerError } from "./errors.ts";
+
 export type RouteNoteCliCommand =
   | { command: "login" }
   | { command: "upload"; releaseId: string };
-
-export class RouteNoteRunnerError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string = code) {
-    super(message);
-    this.name = "RouteNoteRunnerError";
-    this.code = code;
-  }
-}
 
 const USAGE =
   "Usage: pnpm routenote:login | pnpm routenote:upload <songforge-release-id>";
