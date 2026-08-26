@@ -172,9 +172,14 @@ async function fixture() {
   const repository = new InMemoryReleaseRepository();
   await repository.saveRelease(release());
   await repository.savePreparationContext(context());
+  const ids = new Map<string, number>();
   const releaseService = new ReleaseCommandService(repository, {
     now: () => NOW,
-    id: prefix => `${prefix}-1`
+    id: prefix => {
+      const next = (ids.get(prefix) ?? 0) + 1;
+      ids.set(prefix, next);
+      return `${prefix}-${next}`;
+    }
   });
 
   const dependencies: RouteNoteRunControlDependencies = {
