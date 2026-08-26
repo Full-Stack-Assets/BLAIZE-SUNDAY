@@ -135,13 +135,11 @@ function launchInput(
   };
 }
 
-async function closeQuietly(session: RouteNoteBrowserSession): Promise<void> {
-  try {
-    await session.close();
-  } catch {
-    // Preserve the original provider/control failure. Browser close itself performs
-    // TERM/KILL escalation so normal close returns only once the process is gone.
-  }
+async function closeBrowser(session: RouteNoteBrowserSession): Promise<void> {
+  // Browser.close() performs TERM/KILL escalation and throws if process exit cannot
+  // be proven. Propagate that safety failure so the profile lease is not silently
+  // released after an unconfirmed Chromium shutdown.
+  await session.close();
 }
 
 async function withBrowserOperation<T>(
@@ -233,7 +231,7 @@ export async function checkRouteNoteConnection(
       const authenticated = await dependencies.checkAuthenticated(session.port);
       return { status: authenticated ? "CONNECTED" : "LOGIN_REQUIRED" };
     } finally {
-      await closeQuietly(session);
+      await closeBrowser(session);
     }
   });
 }
@@ -250,7 +248,7 @@ export async function loginRouteNote(
       );
       return { status: "CONNECTED" };
     } finally {
-      await closeQuietly(session);
+      await closeBrowser(session);
     }
   });
 }
@@ -355,12 +353,12 @@ export async function prepareRouteNoteDraft(
       );
 
       if (envFlag(dependencies.env, "ROUTENOTE_CLOSE_BROWSER")) {
-        await closeQuietly(session);
+        await closeBrowser(session);
       }
 
       return sanitizeReceipt(receipt);
     } catch (error) {
-      await closeQuietly(session);
+      await closeBrowser(session);
       throw error;
     }
   });
