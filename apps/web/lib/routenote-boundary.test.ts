@@ -14,6 +14,8 @@ test("RouteNote web control surface exposes no executable final-submission path"
     source("app/api/distribution/routenote/login/route.ts"),
     source("app/api/distribution/routenote/check/route.ts"),
     source("app/api/distribution/routenote/drafts/route.ts"),
+    source("app/api/distribution/routenote/authorize/route.ts"),
+    source("components/RouteNoteControlSurface.tsx"),
     source("components/RouteNoteControlPanel.tsx")
   ]);
   const combined = sources.join("\n");
@@ -23,9 +25,10 @@ test("RouteNote web control surface exposes no executable final-submission path"
   assert.equal(/\bSUBMITTED\b/.test(combined), false);
 });
 
-test("client and API routes do not expose credential or local-profile fields", async () => {
+test("client and operational API routes do not expose local provider/session fields", async () => {
   const publicFacing = (
     await Promise.all([
+      source("components/RouteNoteControlSurface.tsx"),
       source("components/RouteNoteControlPanel.tsx"),
       source("app/api/distribution/routenote/route.ts"),
       source("app/api/distribution/routenote/login/route.ts"),
@@ -34,10 +37,22 @@ test("client and API routes do not expose credential or local-profile fields", a
     ])
   ).join("\n");
 
-  assert.equal(/password/i.test(publicFacing), false);
-  assert.equal(/cookie/i.test(publicFacing), false);
+  assert.equal(/ROUTENOTE_CONTROL_PASSPHRASE/.test(publicFacing), false);
   assert.equal(/profileDir/.test(publicFacing), false);
   assert.equal(/receiptPath/.test(publicFacing), false);
+  assert.equal(/ROUTENOTE_BROWSER_EXECUTABLE_PATH/.test(publicFacing), false);
+});
+
+test("owner unlock is separate from RouteNote account credentials", async () => {
+  const surface = await source("components/RouteNoteControlSurface.tsx");
+  const authorizeRoute = await source(
+    "app/api/distribution/routenote/authorize/route.ts"
+  );
+
+  assert.match(surface, /separate from your RouteNote account password/i);
+  assert.match(surface, /type="password"/);
+  assert.doesNotMatch(surface, /ROUTENOTE_CONTROL_PASSPHRASE/);
+  assert.match(authorizeRoute, /verifyRouteNotePassphrase/);
 });
 
 test("SongForge navigation exposes the no-terminal RouteNote control surface", async () => {
@@ -46,7 +61,7 @@ test("SongForge navigation exposes the no-terminal RouteNote control surface", a
 
   assert.match(shell, /href:\s*"\/distribution\/routenote"/);
   assert.match(shell, /label:\s*"Distribute"/);
-  assert.match(page, /RouteNoteControlPanel/);
+  assert.match(page, /RouteNoteControlSurface/);
 });
 
 test("operator surface names only the DRAFT READY stopping boundary", async () => {
