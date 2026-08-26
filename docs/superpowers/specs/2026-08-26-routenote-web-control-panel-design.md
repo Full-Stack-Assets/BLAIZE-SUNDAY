@@ -6,18 +6,18 @@
 
 ## Goal
 
-Make RouteNote draft preparation usable from the SongForge web interface without requiring terminal commands. The operator should be able to open `/distribution/routenote`, establish or verify a reusable RouteNote browser session, select a canonical SongForge release, inspect readiness, prepare the RouteNote draft, and open the resulting provider draft.
+Make RouteNote draft preparation usable from the SongForge web interface without requiring terminal commands. The operator should be able to open `/distribution/routenote`, unlock the protected RouteNote controls when required, establish or verify a reusable RouteNote browser session, select a canonical SongForge release, inspect readiness, prepare the RouteNote draft, and open the resulting provider draft.
 
 ## Operator experience
 
-The page exposes these actions only:
+After the SongForge owner-control gate is satisfied, the page exposes these RouteNote actions only:
 
 1. **Connect RouteNote** — launches the private RouteNote browser profile and waits for the operator to authenticate normally.
 2. **Check connection** — reports whether the current host has a reusable authenticated RouteNote session.
 3. **Prepare RouteNote Draft** — executes the already-verified runner path for the selected release.
 4. **Open RouteNote Draft** — opens the provider URL returned by a successful `DRAFT_READY` receipt.
 
-The UI displays these operational states:
+The provider-operation UI displays these states:
 
 - `NOT_CONNECTED`
 - `LOGIN_REQUIRED`
@@ -26,11 +26,13 @@ The UI displays these operational states:
 - `DRAFT_READY`
 - `FAILED`
 
+The outer owner-control surface separately displays locked/checking/configuration states and never treats the SongForge control passphrase as a RouteNote account credential.
+
 ## Architecture
 
-The existing `apps/routenote-runner` remains the single host-side implementation of browser/profile/job/receipt behavior. The web app adds a thin server-only bridge in `apps/web/lib/routenote-control.server.ts` and Next route handlers under `apps/web/app/api/distribution/routenote/`. Client components never import browser-process, filesystem, or Prisma runner internals directly.
+The existing `apps/routenote-runner` remains the single host-side implementation of browser/profile/job/receipt behavior. The web app adds a thin server-only bridge in `apps/web/lib/routenote-control.server.ts` and Next route handlers under `apps/web/app/api/distribution/routenote/`. Client components never import browser-process, filesystem, Prisma runner internals, or server-only authority secrets directly.
 
-The web page uses the existing App Router and SongForge visual language. It loads releases and readiness through the server bridge, posts operator actions to the new RouteNote API surface, and renders progress/result state. The browser automation itself remains on the execution host, not in the mobile browser.
+The web page uses the existing App Router and SongForge visual language. It loads releases and readiness through the server bridge, posts operator actions to the protected RouteNote API surface, and renders progress/result state. The browser automation itself remains on the execution host, not in the mobile browser.
 
 ## Host boundary
 
@@ -39,15 +41,45 @@ The web server executing these route handlers must run on a host that can access
 - the SongForge PostgreSQL database;
 - approved release media referenced by canonical release evidence;
 - an installed Chrome/Chromium binary or `ROUTENOTE_BROWSER_EXECUTABLE_PATH`;
-- the private `.songforge/routenote/` profile/cache/receipt directory.
+- the private `.songforge/routenote/` profile/cache/receipt directory;
+- a server-only `ROUTENOTE_CONTROL_PASSPHRASE` when running in production.
 
 An iPhone or iPad is only the control surface. It does not run Chrome DevTools Protocol automation locally.
 
+A remote/headless host does not automatically make RouteNote’s first interactive sign-in visible on the phone. Initial RouteNote authentication still requires an interactive browser host or an already-authenticated private profile. The web surface does not implement remote-desktop or credential-relay behavior.
+
+## Owner authority gate
+
+The RouteNote web endpoints can launch a browser and create provider drafts, so they must not be exposed as anonymous actions on a public SongForge deployment.
+
+Production therefore fails closed unless `ROUTENOTE_CONTROL_PASSPHRASE` is configured server-side. The operator unlock flow:
+
+1. accepts the **SongForge RouteNote control passphrase**, which is explicitly separate from the RouteNote account password;
+2. posts it only to `/api/distribution/routenote/authorize`;
+3. performs a timing-safe comparison against the server-only configured secret;
+4. returns only a deterministic HMAC authority token in an `HttpOnly`, `SameSite=Strict`, `Secure` production cookie;
+5. never stores or returns the plaintext passphrase; and
+6. requires that signed cookie before snapshot, login, connection-check, or draft-preparation operations.
+
+The authority cookie defaults to a 12-hour lifetime. Changing the configured server secret invalidates existing cookies.
+
+Local development without a configured control secret may operate without this extra unlock. Any configured secret activates the gate, and production without a configured secret returns a safe configuration error rather than opening the controls.
+
 ## API surface
+
+### `POST /api/distribution/routenote/authorize`
+
+Body:
+
+```json
+{ "passphrase": "songforge-owner-control-passphrase" }
+```
+
+On success, writes the signed HttpOnly authority cookie. This value is not a RouteNote password and is never forwarded to RouteNote.
 
 ### `GET /api/distribution/routenote`
 
-Returns the control-panel snapshot:
+Requires owner authority when configured/required and returns the control-panel snapshot:
 
 ```ts
 interface RouteNoteControlSnapshot {
@@ -63,21 +95,21 @@ Each release option contains canonical ID/title/status plus a readiness projecti
 
 ### `POST /api/distribution/routenote/login`
 
-Starts the headed RouteNote login bootstrap on the execution host. It waits for the authenticated Distribution surface and returns `CONNECTED`. Authentication, MFA, CAPTCHA, or any provider account challenge remains manual/operator-controlled.
+Requires owner authority. Starts the headed RouteNote login bootstrap on the execution host. It waits for the authenticated Distribution surface and returns `CONNECTED`. Authentication, MFA, CAPTCHA, or any provider account challenge remains manual/operator-controlled.
 
 ### `POST /api/distribution/routenote/check`
 
-Launches the reusable private profile, performs a bounded current-session check against RouteNote’s authenticated Distribution surface, and returns `CONNECTED` or `LOGIN_REQUIRED`. It never attempts credentials.
+Requires owner authority. Launches the reusable private profile, performs a bounded current-session check against RouteNote’s authenticated Distribution surface, and returns `CONNECTED` or `LOGIN_REQUIRED`. It never attempts RouteNote credentials.
 
 ### `POST /api/distribution/routenote/drafts`
 
-Body:
+Requires owner authority. Body:
 
 ```json
 { "releaseId": "songforge-release-id" }
 ```
 
-Validates the release ID, invokes the existing production runner composition, and returns the exact `DRAFT_READY` summary including receipt path and RouteNote draft URL when available. It never executes final distribution.
+Validates the release ID, invokes the existing production runner composition, and returns a **sanitized** `DRAFT_READY` summary with the provider draft URL, completed steps, track confirmation summary, artwork/store status, and payload hash. The local receipt path remains server-private. It never executes final distribution.
 
 ## Server bridge
 
@@ -132,7 +164,7 @@ The first implementation does not add streaming/WebSocket progress. It shows an 
 
 Add a **Distribute** entry to SongForge navigation linking to `/distribution/routenote`. The page is mobile-first and fits the existing dark SongForge visual system.
 
-Primary layout:
+Primary layout after authority unlock:
 
 - account/session card;
 - release selector;
@@ -145,27 +177,31 @@ Buttons use large touch targets suitable for iPhone operation. No terminal instr
 
 ## Error handling
 
-Stable runner/browser errors are mapped to operator actions:
+Stable authority/runner/browser errors are mapped to operator actions:
 
+- `ROUTENOTE_CONTROL_LOCKED` → show the owner unlock surface;
+- `ROUTENOTE_CONTROL_AUTH_INVALID` → reject the control passphrase safely;
+- `ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED` → production host configuration required;
 - `ROUTENOTE_BROWSER_NOT_FOUND` → host unavailable / browser configuration required;
 - `ROUTENOTE_SESSION_REQUIRED` or `ROUTENOTE_LOGIN_TIMEOUT` → `LOGIN_REQUIRED`;
 - `ROUTENOTE_UI_CONTRACT_CHANGED` → provider UI changed; fail closed;
 - `ROUTENOTE_*_CONFIRMATION_MISSING`, metadata/store/provider validation failures → `FAILED` with the stable code;
 - release/context/package/readiness failures → selected release is not draft-ready.
 
-Raw stack traces, cookies, profile paths, media URLs, and credentials are never returned to the browser.
+Raw stack traces, cookies, profile paths, receipt paths, media URLs, RouteNote credentials, and server-only authority secrets are never returned to the browser.
 
 ## Security and authority boundaries
 
 The web surface does not:
 
-- accept or collect RouteNote passwords;
+- accept or collect RouteNote account passwords;
+- forward the SongForge owner-control passphrase to RouteNote;
 - bypass CAPTCHA or MFA;
 - accept the Artist/Label Agreement;
 - click `Distribute Free`;
 - call `recordExternalSubmission()`;
 - transition a release to `SUBMITTED`, `ACCEPTED`, `SCHEDULED`, or `LIVE`;
-- expose local browser-profile/cache paths to the client except the existing non-sensitive receipt identifier/summary needed by the operator.
+- expose local browser-profile/cache/receipt paths to the client.
 
 `DRAFT_READY` remains pre-submission evidence only.
 
@@ -178,14 +214,16 @@ Tests cover:
 - login/check behavior with fake browser hosts;
 - draft preparation composition and fail-closed errors;
 - API body validation and sanitized error mapping;
+- owner authority passphrase comparison, signed-cookie attributes, secret rotation behavior, and production fail-closed configuration;
 - client state reducer/view-model behavior for `NOT_CONNECTED`, `LOGIN_REQUIRED`, `CONNECTED`, `PREPARING`, `DRAFT_READY`, and `FAILED`;
 - navigation link presence;
-- no executable final-submission path.
+- no executable final-submission path;
+- no public local-profile/receipt-path exposure.
 
 Ordinary CI does not launch Chrome, authenticate to RouteNote, or perform provider writes.
 
 ## Acceptance criteria
 
-The feature is complete when a mobile operator can navigate to `/distribution/routenote`, see current release readiness, initiate RouteNote login/session verification, select a ready release, start draft preparation, receive a `DRAFT_READY` result, and open the returned RouteNote draft without using a terminal.
+The feature is complete when a mobile operator can navigate to `/distribution/routenote`, satisfy the owner-control gate when required, see current release readiness, initiate RouteNote login/session verification on an appropriate execution host, select a ready release, start draft preparation, receive a `DRAFT_READY` result, and open the returned RouteNote draft without using a terminal.
 
 The stacked PR remains draft until its parent runner PR is available and the end-to-end live RouteNote calibration confirms the current provider UI. Final distribution remains separately authorization-gated.
