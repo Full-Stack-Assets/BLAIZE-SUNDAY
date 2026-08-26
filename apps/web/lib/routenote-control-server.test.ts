@@ -134,7 +134,7 @@ async function dependencies(overrides: Partial<RouteNoteControlDependencies> = {
     async launchBrowser() { return session; },
     async waitForAuthentication() {},
     async checkAuthenticated() { return true; },
-    async prepareJob(releaseId) {
+    async prepareJob(releaseId: string) {
       return {
         job: { payload: {} as never, payloadHash: "hash", assets: { audio: [], artwork: { path: "", sha256: "" } } },
         release: release("AWAITING_AUTHORIZATION"),
@@ -147,7 +147,7 @@ async function dependencies(overrides: Partial<RouteNoteControlDependencies> = {
         releaseId: "release-1",
         payloadHash: "hash",
         startedAt: now.toISOString(),
-        completedAt: now.toISOString(),
+        finishedAt: now.toISOString(),
         completedSteps: ["SESSION_VERIFIED", "DRAFT_RESOLVED", "PROVIDER_VALIDATED"],
         tracks: [{ trackIndex: 1, title: "Signal Test", uploaded: true }],
         artworkUploaded: true,
