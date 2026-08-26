@@ -27,6 +27,37 @@ test("prepare draft body rejects missing, empty, non-string, or additional field
   }
 });
 
+test("owner authority failures map to sanitized actionable responses", () => {
+  const locked = toRouteNoteApiError(
+    Object.assign(new Error("private authority detail"), {
+      code: "ROUTENOTE_CONTROL_LOCKED"
+    })
+  );
+  assert.equal(locked.status, 401);
+  assert.equal(locked.body.error.code, "ROUTENOTE_CONTROL_LOCKED");
+  assert.equal(JSON.stringify(locked).includes("private authority detail"), false);
+
+  const invalid = toRouteNoteApiError(
+    Object.assign(new Error("candidate"), {
+      code: "ROUTENOTE_CONTROL_AUTH_INVALID"
+    })
+  );
+  assert.equal(invalid.status, 401);
+  assert.equal(invalid.body.error.code, "ROUTENOTE_CONTROL_AUTH_INVALID");
+
+  const missing = toRouteNoteApiError(
+    Object.assign(new Error("server secret missing"), {
+      code: "ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED"
+    })
+  );
+  assert.equal(missing.status, 503);
+  assert.equal(
+    missing.body.error.code,
+    "ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED"
+  );
+  assert.equal(JSON.stringify(missing).includes("server secret missing"), false);
+});
+
 test("release-not-found maps to a sanitized 404", () => {
   const result = toRouteNoteApiError(
     Object.assign(new Error("private db detail"), { code: "ROUTENOTE_RELEASE_NOT_FOUND" })
