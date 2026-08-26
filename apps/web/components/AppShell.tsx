@@ -13,6 +13,7 @@ import {
   FolderKanban,
   Sparkles,
   Clapperboard,
+  Send,
 } from "lucide-react";
 
 const nav = [
@@ -22,6 +23,7 @@ const nav = [
   { href: "/pipeline", label: "Pipeline", icon: Layers },
   { href: "/approvals", label: "Approvals", icon: CheckCircle2 },
   { href: "/releases", label: "Releases", icon: Radio },
+  { href: "/distribution/routenote", label: "Distribute", icon: Send },
   { href: "/grow", label: "Grow", icon: Sparkles },
 ];
 
@@ -62,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800/80 bg-void/95 backdrop-blur-md safe-bottom">
-        <div className="flex items-center justify-around h-14 max-w-xl mx-auto px-2">
+        <div className="flex items-center justify-around h-14 max-w-xl mx-auto px-1">
           {nav.map((item) => {
             const active =
               item.href === "/"
@@ -74,17 +76,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 w-16 h-12 rounded-lg transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 h-12 rounded-lg transition-colors",
                   active
                     ? "text-accent"
                     : "text-ash/50 hover:text-ash"
                 )}
               >
                 <Icon
-                  className={cn("w-[18px] h-[18px]", active && "stroke-[2.25]")}
+                  className={cn("w-[18px] h-[18px] shrink-0", active && "stroke-[2.25]")}
                   strokeWidth={active ? 2.25 : 1.75}
                 />
-                <span className="text-[10px] font-medium tracking-wide">
+                <span className="max-w-full truncate px-0.5 text-[9px] font-medium tracking-wide sm:text-[10px]">
                   {item.label}
                 </span>
               </Link>
