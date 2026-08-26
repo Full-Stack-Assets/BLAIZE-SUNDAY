@@ -6,7 +6,7 @@ The RouteNote runner is the host-side ignition layer for SongForge's RouteNote d
 /distribution/routenote
 ```
 
-From that page an operator can connect/check RouteNote, select a canonical SongForge release, inspect Audio/Artwork/Metadata/Rights readiness, prepare the provider draft, and open the finished RouteNote draft without using a terminal.
+From that page an operator can unlock the protected RouteNote controls, connect/check RouteNote, select a canonical SongForge release, inspect Audio/Artwork/Metadata/Rights readiness, prepare the provider draft, and open the finished RouteNote draft without using a terminal.
 
 The terminal commands remain available as diagnostic and host-bootstrap fallbacks:
 
@@ -23,14 +23,29 @@ The runner prepares RouteNote drafts only. It never accepts RouteNote agreements
 
 Open SongForge and choose **Distribute → RouteNote**.
 
-1. **Connect RouteNote** starts the headed private RouteNote browser profile on the SongForge execution host and waits for normal operator authentication.
-2. **Check connection** performs a current provider check. A profile directory existing on disk is not treated as proof of authentication.
-3. Select a SongForge release. The page projects the canonical RouteNote checklist into **Audio**, **Artwork**, **Metadata**, and **Rights** readiness groups.
-4. When the release is ready and RouteNote is connected, choose **Prepare RouteNote Draft**.
-5. SongForge resolves and verifies the release assets, creates/resumes the provider draft, enters metadata, uploads audio/artwork, configures stores, and validates the provider state.
-6. The surface ends at **DRAFT READY** and exposes **Open RouteNote Draft** when RouteNote provides a draft URL.
+1. On production hosts, unlock the RouteNote control surface with the **SongForge owner-control passphrase**. This is not your RouteNote account password.
+2. **Connect RouteNote** starts the headed private RouteNote browser profile on the SongForge execution host and waits for normal operator authentication.
+3. **Check connection** performs a current provider check. A profile directory existing on disk is not treated as proof of authentication.
+4. Select a SongForge release. The page projects the canonical RouteNote checklist into **Audio**, **Artwork**, **Metadata**, and **Rights** readiness groups.
+5. When the release is ready and RouteNote is connected, choose **Prepare RouteNote Draft**.
+6. SongForge resolves and verifies the release assets, creates/resumes the provider draft, enters metadata, uploads audio/artwork, configures stores, and validates the provider state.
+7. The surface ends at **DRAFT READY** and exposes **Open RouteNote Draft** when RouteNote provides a draft URL.
 
-The mobile browser is a **control surface**. Browser automation executes on the SongForge host because it needs database access, release media, Chrome/Chromium, and the private RouteNote profile. If that host is remote and headless, the initial interactive RouteNote sign-in still requires an interactive browser host or an already-authenticated private profile. The web control panel does not relay passwords, MFA prompts, CAPTCHA challenges, or a remote desktop into the phone.
+The mobile browser is a **control surface**. Browser automation executes on the SongForge host because it needs database access, release media, Chrome/Chromium, and the private RouteNote profile. If that host is remote and headless, the initial interactive RouteNote sign-in still requires an interactive browser host or an already-authenticated private profile. The web control panel does not relay RouteNote passwords, MFA prompts, CAPTCHA challenges, or a remote desktop into the phone.
+
+## Owner-control gate for the web surface
+
+The RouteNote web endpoints can launch browser automation and create provider drafts. A public SongForge deployment therefore must not expose them anonymously.
+
+Production requires a server-only secret:
+
+```text
+ROUTENOTE_CONTROL_PASSPHRASE=<strong SongForge owner-control secret>
+```
+
+This is a **SongForge control secret**, not a RouteNote credential. The operator enters it in the SongForge RouteNote unlock screen. The server compares it locally and, on success, returns only a deterministic signed authority token in an `HttpOnly`, `SameSite=Strict`, `Secure` production cookie. The plaintext passphrase is not stored in the cookie and is never forwarded to RouteNote.
+
+The authority cookie defaults to 12 hours. Rotating `ROUTENOTE_CONTROL_PASSPHRASE` invalidates existing authority cookies. Production without this secret fails closed with a configuration error. Local development without a configured secret may use the control surface without the additional unlock gate.
 
 ## Host prerequisites
 
@@ -42,6 +57,7 @@ For either the web control panel or CLI execution host:
 - Google Chrome or Chromium installed on the execution host.
 - A writable private `.songforge/routenote/` state location, or an explicit `ROUTENOTE_PROFILE_DIR`.
 - A SongForge release with a valid RouteNote preparation context, approved master, approved artwork, metadata, rights/provenance evidence, and asset SHA-256 values.
+- For production web use, `ROUTENOTE_CONTROL_PASSPHRASE` configured as a server secret.
 
 The runner does not require Playwright or a downloaded browser bundle. It launches installed Chrome/Chromium and controls the session through Chrome DevTools Protocol on loopback only.
 
@@ -97,13 +113,14 @@ The runner will automatically:
 13. persist a `ROUTENOTE_DRAFT_READY` release event with no status transition; and
 14. write a private JSON receipt under `.songforge/routenote/receipts/<release-id>/`.
 
-On success the CLI prints the `DRAFT_READY` outcome, local receipt path, approval ID when a new preparation was created, and the RouteNote draft URL when the provider exposes one.
+On success the CLI prints the `DRAFT_READY` outcome, local receipt path, approval ID when a new preparation was created, and the RouteNote draft URL when the provider exposes one. The web surface intentionally does **not** return the local receipt path to the browser.
 
 By default the finished browser remains open for inspection. Close it normally when finished. Set `ROUTENOTE_CLOSE_BROWSER=1` to close it automatically after a successful draft preparation.
 
 ## Environment overrides
 
 ```text
+ROUTENOTE_CONTROL_PASSPHRASE=<server-only SongForge owner-control secret>
 ROUTENOTE_BROWSER_EXECUTABLE_PATH=/absolute/path/to/chrome
 ROUTENOTE_PROFILE_DIR=/absolute/path/to/private-profile
 ROUTENOTE_WORKSPACE_ROOT=/absolute/path/to/songforge
@@ -178,6 +195,6 @@ Those remain separate evidence/authorization boundaries.
 
 Ordinary CI uses fakes and makes no RouteNote network calls. The first production use should therefore be treated as the provider-UI calibration run.
 
-Preferred path: open `/distribution/routenote`, establish a current RouteNote session, choose one authorized ready release, and press **Prepare RouteNote Draft**. The terminal commands remain available if the host needs direct diagnostic execution.
+Preferred path: open `/distribution/routenote`, satisfy the SongForge owner-control gate if required, establish a current RouteNote session, choose one authorized ready release, and press **Prepare RouteNote Draft**. The terminal commands remain available if the host needs direct diagnostic execution.
 
 If RouteNote's current labels or page structure differ from the centralized selector contract, the adapter should fail closed rather than guess. Patch selector drift, rerun CI, and repeat the calibration until the draft reaches `DRAFT_READY` with the expected metadata and assets.
