@@ -20,6 +20,7 @@ class RecordingPort implements RouteNoteBrowserPort {
   readonly texts = new Map<string, string | null>();
   readonly textLists = new Map<string, string[]>();
   readonly fileBatches: string[][] = [];
+  readonly audioFileBatches: string[][] = [];
   readonly checks = new Map<string, boolean>();
 
   async goto(url: string) {
@@ -54,6 +55,9 @@ class RecordingPort implements RouteNoteBrowserPort {
 
   async setInputFiles(target: RouteNoteLocator, paths: string[]) {
     this.fileBatches.push([...paths]);
+    if (target.operation === "audio-file-input") {
+      this.audioFileBatches.push([...paths]);
+    }
     this.events.push(`files:${target.operation}=${paths.length}`);
   }
 
@@ -188,10 +192,10 @@ test("audio is sorted by canonical track index and uploaded in batches of at mos
 
   await executeRouteNoteWorkflow(job, port);
 
-  assert.deepEqual(port.fileBatches.map(batch => batch.length), [15, 1]);
-  assert.equal(port.fileBatches[0]?.[0], "/tmp/track-1.flac");
-  assert.equal(port.fileBatches[0]?.[14], "/tmp/track-15.flac");
-  assert.equal(port.fileBatches[1]?.[0], "/tmp/track-16.flac");
+  assert.deepEqual(port.audioFileBatches.map(batch => batch.length), [15, 1]);
+  assert.equal(port.audioFileBatches[0]?.[0], "/tmp/track-1.flac");
+  assert.equal(port.audioFileBatches[0]?.[14], "/tmp/track-15.flac");
+  assert.equal(port.audioFileBatches[1]?.[0], "/tmp/track-16.flac");
 });
 
 test("audio upload requires provider-side confirmation", async () => {
