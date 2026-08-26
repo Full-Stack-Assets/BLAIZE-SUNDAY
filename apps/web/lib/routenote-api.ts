@@ -65,6 +65,45 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
     };
   }
 
+  if (code === "ROUTENOTE_CONTROL_LOCKED") {
+    return {
+      status: 401,
+      body: {
+        ok: false,
+        error: {
+          code,
+          message: "Unlock RouteNote controls to continue."
+        }
+      }
+    };
+  }
+
+  if (code === "ROUTENOTE_CONTROL_AUTH_INVALID") {
+    return {
+      status: 401,
+      body: {
+        ok: false,
+        error: {
+          code,
+          message: "The RouteNote control passphrase is not valid."
+        }
+      }
+    };
+  }
+
+  if (code === "ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED") {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        error: {
+          code,
+          message: "Owner authorization is not configured for RouteNote web controls."
+        }
+      }
+    };
+  }
+
   if (code === "ROUTENOTE_RELEASE_NOT_FOUND") {
     return {
       status: 404,
