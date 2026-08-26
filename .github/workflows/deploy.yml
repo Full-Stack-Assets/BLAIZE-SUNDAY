@@ -148,6 +148,7 @@ jobs:
               .database == "CONNECTED" and
               .auth.routeNoteOwnerAuthorityConfigured == true and
               .routenote.browser.available == true and
+              .routenote.worker.started == true and
               .routenote.storage.statePrivate == true and
               .routenote.storage.profilePrivate == true and
               .routenote.storage.mediaPrivate == true
@@ -211,6 +212,7 @@ jobs:
             echo "- Existing volume ID: $VOLUME_ID"
             echo "- Browser: $browser_version"
             echo "- Chromium sandbox: host launch proof passed without sandbox-disabling flags"
+            echo "- Durable RouteNote worker: readiness proof passed"
             echo "- Production secret names verified: DATABASE_URL, ROUTENOTE_CONTROL_PASSPHRASE, APPROVAL_API_TOKEN"
             echo "- Migrations: prisma migrate deploy release command completed"
             echo "- Persistent volume: restart probe passed"
