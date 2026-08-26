@@ -105,6 +105,7 @@ jobs:
             command -v prisma
             test -s /models/ggml-base.en.bin
             chromium --version
+            prisma --version
             nginx -t -c /app/apps/web/docker/nginx.conf
           '
 
@@ -119,8 +120,9 @@ jobs:
             grep -qi "html" /tmp/chromium-smoke.html
           '
 
-      - name: Smoke production container and owner-gated desktop
+      - name: Smoke production container and desktop mode isolation
         run: |
+          set -euo pipefail
           cid=$(docker run -d --rm \
             -e ROUTENOTE_CONTROL_PASSPHRASE=ci-owner-passphrase \
             -p 3000:3000 songforge-web-ci)
@@ -138,9 +140,58 @@ jobs:
             exit 1
           fi
           jq -e --arg sha "$GITHUB_SHA" '.ok == true and .deploymentSha == $sha' /tmp/live.json
-          code=$(curl -sS -o /tmp/desktop-denied -w '%{http_code}' \
+
+          for path in routenote-desktop routenote-draft-view; do
+            code=$(curl -sS -o /tmp/desktop-denied -w '%{http_code}' \
+              "http://127.0.0.1:3000/$path/vnc.html")
+            test "$code" = "401"
+          done
+
+          curl -sS -D /tmp/control.headers -o /tmp/control.json \
+            -H 'content-type: application/json' \
+            -H 'Origin: http://127.0.0.1:3000' \
+            -H 'Sec-Fetch-Site: same-origin' \
+            -d '{"passphrase":"ci-owner-passphrase"}' \
+            http://127.0.0.1:3000/api/distribution/routenote/authorize
+          jq -e '.ok == true and .authorized == true' /tmp/control.json
+          control_cookie=$(awk -F': ' 'tolower($1)=="set-cookie" && $2 ~ /^songforge_routenote_control=/ {sub(/\r$/, "", $2); split($2, a, ";"); print a[1]}' /tmp/control.headers | tail -n1)
+          test -n "$control_cookie"
+
+          issue_desktop() {
+            mode="$1"
+            curl -sS -D /tmp/desktop.headers -o /tmp/desktop.json \
+              -H "Cookie: $control_cookie" \
+              -H 'content-type: application/json' \
+              -H 'Origin: http://127.0.0.1:3000' \
+              -H 'Sec-Fetch-Site: same-origin' \
+              -d "{\"mode\":\"$mode\"}" \
+              http://127.0.0.1:3000/api/distribution/routenote/desktop-session
+            jq -e --arg mode "$mode" '.ok == true and .desktop.mode == $mode' /tmp/desktop.json
+            awk -F': ' 'tolower($1)=="set-cookie" && $2 ~ /^songforge_routenote_desktop=/ {sub(/\r$/, "", $2); split($2, a, ";"); print a[1]}' /tmp/desktop.headers | tail -n1
+          }
+
+          interactive_cookie=$(issue_desktop INTERACTIVE)
+          test -n "$interactive_cookie"
+          code=$(curl -sS -o /tmp/interactive-ok -w '%{http_code}' \
+            -H "Cookie: $control_cookie; $interactive_cookie" \
+            http://127.0.0.1:3000/routenote-desktop/vnc.html)
+          test "$code" = "200"
+          code=$(curl -sS -o /tmp/view-denied -w '%{http_code}' \
+            -H "Cookie: $control_cookie; $interactive_cookie" \
+            http://127.0.0.1:3000/routenote-draft-view/vnc.html)
+          test "$code" = "401"
+
+          view_cookie=$(issue_desktop VIEW_ONLY)
+          test -n "$view_cookie"
+          code=$(curl -sS -o /tmp/view-ok -w '%{http_code}' \
+            -H "Cookie: $control_cookie; $view_cookie" \
+            http://127.0.0.1:3000/routenote-draft-view/vnc.html)
+          test "$code" = "200"
+          code=$(curl -sS -o /tmp/interactive-denied -w '%{http_code}' \
+            -H "Cookie: $control_cookie; $view_cookie" \
             http://127.0.0.1:3000/routenote-desktop/vnc.html)
           test "$code" = "401"
+
           curl -sS http://127.0.0.1:3000/api/health/readiness >/tmp/readiness.json
           jq -e '.routenote.browser.available == true' /tmp/readiness.json
 
