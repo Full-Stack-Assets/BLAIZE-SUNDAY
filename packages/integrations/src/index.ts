@@ -113,3 +113,5 @@ export function inspectIntegrations(): IntegrationReport[] {
 export function neverClaimConnected(report: IntegrationReport): boolean {
   return report.status === "CONNECTED" ? Boolean(report.detail) : true;
 }
+
+export * from "./routenote/index.ts";
