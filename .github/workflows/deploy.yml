@@ -164,6 +164,14 @@ jobs:
           curl -fsS "$URL/api/health/live" >/tmp/live.json
           jq -e --arg sha "$GITHUB_SHA" '.ok == true and .deploymentSha == $sha' /tmp/live.json
 
+      - name: Prove Chromium sandbox launches on the production host
+        env:
+          MACHINE_ID: ${{ steps.preflight.outputs.machine_id }}
+        run: |
+          set -euo pipefail
+          flyctl ssh console --app "$APP" --machine "$MACHINE_ID" --command \
+            'rm -f /tmp/songforge-chromium-sandbox-smoke.html; timeout 30 su-exec nextjs:nodejs chromium --headless=new --disable-gpu --disable-dev-shm-usage --dump-dom about:blank > /tmp/songforge-chromium-sandbox-smoke.html && grep -qi html /tmp/songforge-chromium-sandbox-smoke.html && rm -f /tmp/songforge-chromium-sandbox-smoke.html'
+
       - name: Verify private volume survives a machine restart
         env:
           MACHINE_ID: ${{ steps.preflight.outputs.machine_id }}
@@ -202,6 +210,7 @@ jobs:
             echo "- Existing machine ID: $MACHINE_ID"
             echo "- Existing volume ID: $VOLUME_ID"
             echo "- Browser: $browser_version"
+            echo "- Chromium sandbox: host launch proof passed without sandbox-disabling flags"
             echo "- Production secret names verified: DATABASE_URL, ROUTENOTE_CONTROL_PASSPHRASE, APPROVAL_API_TOKEN"
             echo "- Migrations: prisma migrate deploy release command completed"
             echo "- Persistent volume: restart probe passed"
