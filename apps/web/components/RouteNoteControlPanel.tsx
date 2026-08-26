@@ -25,9 +25,6 @@ import type {
 } from "@/lib/routenote-control";
 import { cn } from "@/lib/utils";
 
-const ROUTENOTE_DESKTOP_URL =
-  "/routenote-desktop/vnc.html?autoconnect=1&resize=scale&path=routenote-desktop/websockify";
-
 const PENDING_STAGES = [
   "Verify release",
   "Verify assets",
@@ -53,6 +50,8 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 type ApiError = { code: string; message: string };
+type DesktopMode = "INTERACTIVE" | "VIEW_ONLY";
+type BusyAction = "login" | "check" | "prepare" | "inspect" | null;
 
 function statusLabel(status: string) {
   return status.replaceAll("_", " ");
@@ -81,6 +80,32 @@ function readApiError(data: any): ApiError {
   };
 }
 
+async function issueDesktopSession(mode: DesktopMode): Promise<string> {
+  const response = await fetch("/api/distribution/routenote/desktop-session", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ mode })
+  });
+  const data = await responseJson(response);
+  if (!response.ok || !data?.ok || typeof data?.desktop?.url !== "string") {
+    throw readApiError(data);
+  }
+  return data.desktop.url;
+}
+
+async function clearDesktopSession(): Promise<void> {
+  await fetch("/api/distribution/routenote/desktop-session", {
+    method: "DELETE"
+  }).catch(() => undefined);
+}
+
+function popupError(): ApiError {
+  return {
+    code: "ROUTENOTE_DESKTOP_POPUP_BLOCKED",
+    message: "Safari blocked the RouteNote host window. Allow the new tab and try again."
+  };
+}
+
 function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-slate-800/70 last:border-0">
@@ -105,7 +130,8 @@ export function RouteNoteControlPanel() {
     createInitialRouteNoteControlState
   );
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"login" | "check" | "prepare" | null>(null);
+  const [busy, setBusy] = useState<BusyAction>(null);
+  const [inspectionError, setInspectionError] = useState<ApiError | null>(null);
 
   const selected = useMemo(() => selectedRouteNoteRelease(state), [state]);
   const canPrepare = canPrepareSelectedRelease(state) && busy === null;
@@ -135,15 +161,24 @@ export function RouteNoteControlPanel() {
   async function connectionAction(kind: "login" | "check") {
     const desktopWindow =
       kind === "login"
-        ? window.open(ROUTENOTE_DESKTOP_URL, "songforge-routenote-login")
+        ? window.open("about:blank", "songforge-routenote-login")
         : null;
+    if (kind === "login" && !desktopWindow) {
+      dispatch({ type: "FAILED", error: popupError() });
+      return;
+    }
+
     setBusy(kind);
     try {
+      if (kind === "login" && desktopWindow) {
+        const url = await issueDesktopSession("INTERACTIVE");
+        desktopWindow.location.href = url;
+      }
+
       const response = await fetch(`/api/distribution/routenote/${kind}`, { method: "POST" });
       const data = await responseJson(response);
       if (!response.ok || !data?.ok) throw readApiError(data);
       dispatch({ type: "CONNECTION_RESULT", status: data.connection.status });
-      if (kind === "login" && desktopWindow && !desktopWindow.closed) desktopWindow.close();
     } catch (error) {
       const safe =
         typeof error === "object" && error !== null && "code" in error
@@ -158,6 +193,10 @@ export function RouteNoteControlPanel() {
         dispatch({ type: "FAILED", error: safe });
       }
     } finally {
+      if (kind === "login") {
+        await clearDesktopSession();
+        if (desktopWindow && !desktopWindow.closed) desktopWindow.close();
+      }
       setBusy(null);
     }
   }
@@ -165,6 +204,7 @@ export function RouteNoteControlPanel() {
   async function prepareDraft() {
     if (!selected || !canPrepare) return;
     setBusy("prepare");
+    setInspectionError(null);
     dispatch({ type: "PREPARE_STARTED" });
     try {
       const response = await fetch("/api/distribution/routenote/drafts", {
@@ -181,6 +221,38 @@ export function RouteNoteControlPanel() {
           ? (error as ApiError)
           : { code: "ROUTENOTE_CONTROL_FAILED", message: "RouteNote draft preparation failed." };
       dispatch({ type: "FAILED", error: safe });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openDraftInspection() {
+    if (!state.draft) return;
+    const desktopWindow = window.open("about:blank", "songforge-routenote-draft-view");
+    if (!desktopWindow) {
+      setInspectionError(popupError());
+      return;
+    }
+
+    setBusy("inspect");
+    setInspectionError(null);
+    try {
+      const url = await issueDesktopSession("VIEW_ONLY");
+      desktopWindow.location.href = url;
+      const response = await fetch("/api/distribution/routenote/draft-inspection", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ releaseId: state.draft.releaseId })
+      });
+      const data = await responseJson(response);
+      if (!response.ok || !data?.ok) throw readApiError(data);
+    } catch (error) {
+      if (desktopWindow && !desktopWindow.closed) desktopWindow.close();
+      setInspectionError(
+        typeof error === "object" && error !== null && "code" in error
+          ? (error as ApiError)
+          : { code: "ROUTENOTE_CONTROL_FAILED", message: "RouteNote draft inspection failed." }
+      );
     } finally {
       setBusy(null);
     }
@@ -346,16 +418,32 @@ export function RouteNoteControlPanel() {
                 </div>
               ))}
               {state.draft.routeNoteReleaseUrl ? (
-                <a
-                  href={state.draft.routeNoteReleaseUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 min-h-12 rounded-xl border border-accent/30 bg-accent/10 px-4 text-[12px] font-medium text-accent flex items-center justify-center gap-2"
-                >
-                  Open RouteNote Draft
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void openDraftInspection()}
+                    disabled={busy !== null}
+                    className="mt-3 w-full min-h-12 rounded-xl border border-accent/30 bg-accent/10 px-4 text-[12px] font-medium text-accent disabled:opacity-40 flex items-center justify-center gap-2"
+                  >
+                    {busy === "inspect" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    {busy === "inspect" ? "Opening read-only draft" : "Open RouteNote Draft"}
+                  </button>
+                  <p className="text-[10px] text-ash/35 text-center">
+                    Opens the retained host browser profile in server-enforced view-only mode. The inspection browser closes automatically.
+                  </p>
+                </>
               ) : null}
+            </div>
+          ) : null}
+
+          {inspectionError ? (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-[12px] font-medium text-amber-300">{inspectionError.message}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-wider text-ash/40">{inspectionError.code}</p>
             </div>
           ) : null}
 
