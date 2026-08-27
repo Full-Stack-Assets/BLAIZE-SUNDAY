@@ -168,7 +168,7 @@ jobs:
               -H 'Sec-Fetch-Site: same-origin' \
               -d "{\"mode\":\"$mode\"}" \
               http://127.0.0.1:3000/api/distribution/routenote/desktop-session
-            jq -e --arg mode "$mode" '.ok == true and .desktop.mode == $mode' /tmp/desktop.json
+            jq -e --arg mode "$mode" '.ok == true and .desktop.mode == $mode' /tmp/desktop.json >/dev/null
             awk -F': ' 'tolower($1)=="set-cookie" && $2 ~ /^songforge_routenote_desktop=/ {sub(/\r$/, "", $2); split($2, a, ";"); print a[1]}' /tmp/desktop.headers | tail -n1
           }
 
