@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { KeyRound, Loader2, ShieldAlert } from "lucide-react";
 
 import { RouteNoteControlPanel } from "@/components/RouteNoteControlPanel";
+import { RouteNoteMediaImport } from "@/components/RouteNoteMediaImport";
 
 type AuthorityState = "CHECKING" | "LOCKED" | "READY" | "NOT_CONFIGURED";
 
@@ -115,7 +116,12 @@ export function RouteNoteControlSurface() {
   }
 
   if (authority === "READY") {
-    return <RouteNoteControlPanel />;
+    return (
+      <div className="space-y-5">
+        <RouteNoteControlPanel />
+        <RouteNoteMediaImport />
+      </div>
+    );
   }
 
   if (authority === "CHECKING") {
