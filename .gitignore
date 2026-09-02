@@ -9,3 +9,4 @@ coverage
 *.tsbuildinfo
 album/local-inputs/
 artifacts/album-build/
+.songforge/routenote/
