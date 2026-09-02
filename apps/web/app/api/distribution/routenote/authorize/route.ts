@@ -5,6 +5,7 @@ import {
   verifyRouteNotePassphrase
 } from "../../../../../lib/routenote-authority.server.ts";
 import { toRouteNoteApiError } from "../../../../../lib/routenote-api.ts";
+import { requireSameOriginMutation } from "../../../../../lib/routenote-request.server.ts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ class RouteNoteAuthorizeError extends Error {
 
 export async function POST(request: Request) {
   try {
+    requireSameOriginMutation(request);
     const body = await request.json().catch(() => null);
     const passphrase =
       typeof body === "object" &&
@@ -42,10 +44,7 @@ export async function POST(request: Request) {
     }
 
     const response = NextResponse.json({ ok: true, authorized: true });
-    response.headers.set(
-      "Set-Cookie",
-      createRouteNoteAuthorityCookie(process.env)
-    );
+    response.headers.set("Set-Cookie", createRouteNoteAuthorityCookie(process.env));
     return response;
   } catch (error) {
     const mapped = toRouteNoteApiError(error);

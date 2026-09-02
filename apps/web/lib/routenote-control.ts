@@ -1,3 +1,4 @@
+import type { RouteNoteExecutionStep } from "@songforge/integrations";
 import {
   buildRouteNoteChecklist,
   type ReleasePreparationContext,
@@ -35,7 +36,7 @@ export interface RouteNoteDraftSummary {
   releaseId: string;
   payloadHash: string;
   routeNoteReleaseUrl?: string;
-  completedSteps: string[];
+  completedSteps: RouteNoteExecutionStep[];
   tracks: Array<{ trackIndex: number; title: string; uploaded: boolean }>;
   artworkUploaded: boolean;
   storesConfigured: boolean;

@@ -1,9 +1,11 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { open, readFile, rename, rm } from "node:fs/promises";
+import { join } from "node:path";
 
 import type { RouteNoteExecutionReceipt } from "../../../packages/integrations/src/index.ts";
 import type { ReleaseRepository } from "../../../packages/release/src/index.ts";
+import { RouteNoteRunnerError } from "./errors.ts";
+import { ensurePrivateDirectory, routeNoteReceiptRoot } from "./state.ts";
 
 export interface DraftReceiptRuntime {
   now(): Date;
@@ -15,48 +17,166 @@ const defaultRuntime: DraftReceiptRuntime = {
   id: () => `event-${randomUUID()}`
 };
 
-function filenameTimestamp(date: Date): string {
-  return date.toISOString().replace(/[:.]/g, "-");
+function receiptPolicyError(): RouteNoteRunnerError {
+  return new RouteNoteRunnerError(
+    "ROUTENOTE_STATE_POLICY_VIOLATION",
+    "The persisted RouteNote DRAFT_READY receipt is invalid."
+  );
+}
+
+function releaseDirectoryName(releaseId: string): string {
+  return createHash("sha256").update(releaseId).digest("hex").slice(0, 24);
+}
+
+function normalizedPayloadHash(payloadHash: string): string {
+  const value = payloadHash.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(value)) throw receiptPolicyError();
+  return value;
+}
+
+function receiptPathFor(
+  releaseId: string,
+  payloadHash: string,
+  workspaceRoot: string,
+  env: NodeJS.ProcessEnv
+): { directory: string; path: string } {
+  const directory = join(
+    routeNoteReceiptRoot(workspaceRoot, env),
+    releaseDirectoryName(releaseId)
+  );
+  return {
+    directory,
+    path: join(directory, `${normalizedPayloadHash(payloadHash)}.json`)
+  };
+}
+
+function receiptEquivalent(
+  left: RouteNoteExecutionReceipt,
+  right: RouteNoteExecutionReceipt
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function parseReceipt(value: string): RouteNoteExecutionReceipt {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw receiptPolicyError();
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    (parsed as RouteNoteExecutionReceipt).outcome !== "DRAFT_READY" ||
+    typeof (parsed as RouteNoteExecutionReceipt).releaseId !== "string" ||
+    typeof (parsed as RouteNoteExecutionReceipt).payloadHash !== "string"
+  ) {
+    throw receiptPolicyError();
+  }
+  return parsed as RouteNoteExecutionReceipt;
+}
+
+export async function loadDraftReadyReceipt(
+  releaseId: string,
+  payloadHash: string,
+  workspaceRoot: string,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<RouteNoteExecutionReceipt | null> {
+  const location = receiptPathFor(releaseId, payloadHash, workspaceRoot, env);
+  let raw: string;
+  try {
+    raw = await readFile(location.path, "utf8");
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ENOENT"
+    ) {
+      return null;
+    }
+    throw receiptPolicyError();
+  }
+  const receipt = parseReceipt(raw);
+  if (
+    receipt.releaseId !== releaseId ||
+    receipt.payloadHash.toLowerCase() !== normalizedPayloadHash(payloadHash)
+  ) {
+    throw receiptPolicyError();
+  }
+  return receipt;
+}
+
+function evidencePayloadHash(evidence: unknown): string | null {
+  if (typeof evidence !== "object" || evidence === null) return null;
+  const payloadHash = (evidence as { payloadHash?: unknown }).payloadHash;
+  return typeof payloadHash === "string" ? payloadHash.toLowerCase() : null;
 }
 
 export async function persistDraftReadyReceipt(
   repository: ReleaseRepository,
   receipt: RouteNoteExecutionReceipt,
   workspaceRoot: string,
-  runtime: DraftReceiptRuntime = defaultRuntime
+  runtime: DraftReceiptRuntime = defaultRuntime,
+  env: NodeJS.ProcessEnv = process.env
 ) {
-  const createdAt = runtime.now();
-  const receiptDirectory = resolve(
+  if (receipt.outcome !== "DRAFT_READY") throw receiptPolicyError();
+  const location = receiptPathFor(
+    receipt.releaseId,
+    receipt.payloadHash,
     workspaceRoot,
-    ".songforge",
-    "routenote",
-    "receipts",
-    receipt.releaseId
+    env
   );
-  await mkdir(receiptDirectory, { recursive: true });
-  const receiptPath = join(
-    receiptDirectory,
-    `${filenameTimestamp(createdAt)}-${receipt.payloadHash.slice(0, 12)}.json`
+  await ensurePrivateDirectory(location.directory);
+
+  const existing = await loadDraftReadyReceipt(
+    receipt.releaseId,
+    receipt.payloadHash,
+    workspaceRoot,
+    env
   );
-  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, {
-    encoding: "utf8",
-    flag: "wx"
-  });
+  if (existing) {
+    if (!receiptEquivalent(existing, receipt)) throw receiptPolicyError();
+  } else {
+    const temporaryPath = `${location.path}.part-${randomUUID()}`;
+    const handle = await open(temporaryPath, "wx", 0o600);
+    try {
+      await handle.writeFile(`${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    try {
+      await rename(temporaryPath, location.path);
+    } catch (error) {
+      await rm(temporaryPath, { force: true });
+      throw error;
+    }
+  }
 
-  await repository.appendReleaseEvent({
-    id: runtime.id(),
-    releaseId: receipt.releaseId,
-    type: "ROUTENOTE_DRAFT_READY",
-    fromStatus: null,
-    toStatus: null,
-    actor: "routenote-runner",
-    evidence: {
-      provider: "routenote-free",
-      payloadHash: receipt.payloadHash,
-      receipt
-    },
-    createdAt
-  });
+  const normalizedHash = normalizedPayloadHash(receipt.payloadHash);
+  const events = await repository.listReleaseEvents(receipt.releaseId);
+  const alreadyRecorded = events.some(
+    event =>
+      event.type === "ROUTENOTE_DRAFT_READY" &&
+      evidencePayloadHash(event.evidence) === normalizedHash
+  );
+  if (!alreadyRecorded) {
+    await repository.appendReleaseEvent({
+      id: runtime.id(),
+      releaseId: receipt.releaseId,
+      type: "ROUTENOTE_DRAFT_READY",
+      fromStatus: null,
+      toStatus: null,
+      actor: "routenote-runner",
+      evidence: {
+        provider: "routenote-free",
+        payloadHash: normalizedHash,
+        receipt
+      },
+      createdAt: runtime.now()
+    });
+  }
 
-  return { receiptPath };
+  return { receiptPath: location.path };
 }

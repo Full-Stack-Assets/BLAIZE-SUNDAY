@@ -19,6 +19,7 @@ import {
 
 export interface RouteNoteWorkflowOptions {
   now?: () => Date;
+  onStep?: (step: RouteNoteExecutionStep) => void | Promise<void>;
 }
 
 function normalize(value: string): string {
@@ -313,30 +314,34 @@ export async function executeRouteNoteWorkflow(
   const now = options.now ?? (() => new Date());
   const startedAt = now().toISOString();
   const completedSteps: RouteNoteExecutionStep[] = [];
+  const complete = async (step: RouteNoteExecutionStep) => {
+    completedSteps.push(step);
+    await options.onStep?.(step);
+  };
 
   await verifySession(port);
-  completedSteps.push("SESSION_VERIFIED");
+  await complete("SESSION_VERIFIED");
 
   const draft = await resolveOrCreateDraft(job, port);
-  completedSteps.push("DRAFT_RESOLVED");
+  await complete("DRAFT_RESOLVED");
   if (draft.created) {
-    completedSteps.push("RELEASE_DATA_SAVED");
+    await complete("RELEASE_DATA_SAVED");
   }
 
   await fillAlbumDetails(job, port);
-  completedSteps.push("ALBUM_DETAILS_SAVED");
+  await complete("ALBUM_DETAILS_SAVED");
 
   const tracks = await uploadTracks(job, port);
-  completedSteps.push("AUDIO_UPLOADED");
+  await complete("AUDIO_UPLOADED");
 
   await uploadArtwork(job, port);
-  completedSteps.push("ARTWORK_UPLOADED");
+  await complete("ARTWORK_UPLOADED");
 
   await configureStores(job, port);
-  completedSteps.push("STORES_CONFIGURED");
+  await complete("STORES_CONFIGURED");
 
   await validateProviderDraft(port);
-  completedSteps.push("PROVIDER_VALIDATED");
+  await complete("PROVIDER_VALIDATED");
 
   const routeNoteReleaseUrl = await port.currentUrl();
 

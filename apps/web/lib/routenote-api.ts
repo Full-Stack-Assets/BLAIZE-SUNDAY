@@ -55,80 +55,128 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
   if (code === "ROUTENOTE_API_INVALID_REQUEST") {
     return {
       status: 400,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "A non-empty SongForge release ID is required."
-        }
-      }
+      body: { ok: false, error: { code, message: "A non-empty SongForge release ID is required." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DESKTOP_SESSION_INPUT_INVALID") {
+    return {
+      status: 400,
+      body: { ok: false, error: { code, message: "A valid RouteNote desktop mode is required." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_CONTROL_ORIGIN_REJECTED") {
+    return {
+      status: 403,
+      body: { ok: false, error: { code, message: "RouteNote control request origin was rejected." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_LOCKED") {
     return {
       status: 401,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "Unlock RouteNote controls to continue."
-        }
-      }
+      body: { ok: false, error: { code, message: "Unlock RouteNote controls to continue." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DESKTOP_SESSION_INVALID") {
+    return {
+      status: 401,
+      body: { ok: false, error: { code, message: "Open a fresh authorized RouteNote desktop session." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_AUTH_INVALID") {
     return {
       status: 401,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "The RouteNote control passphrase is not valid."
-        }
-      }
+      body: { ok: false, error: { code, message: "The RouteNote control passphrase is not valid." } }
     };
   }
 
   if (code === "ROUTENOTE_CONTROL_AUTH_NOT_CONFIGURED") {
     return {
       status: 503,
-      body: {
-        ok: false,
-        error: {
-          code,
-          message: "Owner authorization is not configured for RouteNote web controls."
-        }
-      }
+      body: { ok: false, error: { code, message: "Owner authorization is not configured for RouteNote web controls." } }
     };
   }
 
-  if (code === "ROUTENOTE_RELEASE_NOT_FOUND") {
+  if (code === "ROUTENOTE_RELEASE_NOT_FOUND" || code === "ROUTENOTE_RUN_NOT_FOUND") {
     return {
       status: 404,
       body: {
         ok: false,
         error: {
           code,
-          message: "The selected SongForge release was not found."
+          message:
+            code === "ROUTENOTE_RUN_NOT_FOUND"
+              ? "The RouteNote automation run was not found."
+              : "The selected SongForge release was not found."
         }
       }
     };
   }
 
-  if (code === "ROUTENOTE_RELEASE_NOT_READY" || code === "ROUTENOTE_CONTEXT_NOT_FOUND") {
+  if (code === "ROUTENOTE_PROFILE_BUSY") {
     return {
       status: 409,
+      body: { ok: false, error: { code, message: "Another RouteNote browser operation is still active." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DRAFT_RECEIPT_NOT_FOUND") {
+    return {
+      status: 409,
+      body: { ok: false, error: { code, message: "No durable DRAFT_READY receipt is available for inspection." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_INSPECTION_LOGIN_REQUIRED") {
+    return {
+      status: 409,
+      body: { ok: false, error: { code, message: "Reconnect RouteNote before opening the retained draft." } }
+    };
+  }
+
+  if (code === "ROUTENOTE_STATE_POLICY_VIOLATION") {
+    return {
+      status: 503,
+      body: { ok: false, error: { code, message: "RouteNote private state failed its production safety check." } }
+    };
+  }
+
+  if (
+    code === "ROUTENOTE_RELEASE_NOT_READY" ||
+    code === "ROUTENOTE_CONTEXT_NOT_FOUND" ||
+    code === "ROUTENOTE_APPROVAL_NOT_FOUND" ||
+    code === "ROUTENOTE_APPROVAL_PAYLOAD_MISMATCH" ||
+    code === "ROUTENOTE_ACTION_PACKAGE_STALE" ||
+    code === "ROUTENOTE_PACKAGE_NOT_AUTHORIZABLE" ||
+    code === "ROUTENOTE_PACKAGE_NOT_AUTHORIZED" ||
+    code === "APPROVAL_EXPIRED"
+  ) {
+    const messages: Record<string, string> = {
+      ROUTENOTE_RELEASE_NOT_READY: "The selected release is not ready for RouteNote draft preparation.",
+      ROUTENOTE_CONTEXT_NOT_FOUND: "The selected release is missing required preparation evidence.",
+      ROUTENOTE_APPROVAL_NOT_FOUND: "The current RouteNote package has no valid approval request.",
+      ROUTENOTE_APPROVAL_PAYLOAD_MISMATCH: "The RouteNote approval no longer matches the current package.",
+      ROUTENOTE_ACTION_PACKAGE_STALE: "The RouteNote package changed and must be preflighted again.",
+      ROUTENOTE_PACKAGE_NOT_AUTHORIZABLE: "The current RouteNote package cannot be authorized in its present state.",
+      ROUTENOTE_PACKAGE_NOT_AUTHORIZED: "Authorize the exact current RouteNote package before starting automation.",
+      APPROVAL_EXPIRED: "The RouteNote package authorization expired. Preflight and authorize the current package again."
+    };
+    return {
+      status: 409,
+      body: { ok: false, error: { code: code as string, message: messages[code as string]! } }
+    };
+  }
+
+  if (code === "ROUTENOTE_DRAFT_RECEIPT_MISMATCH") {
+    return {
+      status: 502,
       body: {
         ok: false,
-        error: {
-          code,
-          message:
-            code === "ROUTENOTE_RELEASE_NOT_READY"
-              ? "The selected release is not ready for RouteNote draft preparation."
-              : "The selected release is missing required preparation evidence."
-        }
+        error: { code, message: "The RouteNote worker receipt did not match the authorized package. Operator review is required." }
       }
     };
   }
@@ -144,12 +192,6 @@ export function toRouteNoteApiError(error: unknown): RouteNoteApiErrorResult {
 
   return {
     status,
-    body: {
-      ok: false,
-      error: {
-        code: mapped.code,
-        message: mapped.message
-      }
-    }
+    body: { ok: false, error: { code: mapped.code, message: mapped.message } }
   };
 }

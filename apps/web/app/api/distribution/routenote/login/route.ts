@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { loginRouteNote } from "../../../../../lib/routenote-control.server.ts";
 import { toRouteNoteApiError } from "../../../../../lib/routenote-api.ts";
+import { requireSameOriginMutation } from "../../../../../lib/routenote-request.server.ts";
 import {
   createWebRouteNoteControlDependencies,
   requireWebRouteNoteControlAuthority
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    requireSameOriginMutation(request);
     requireWebRouteNoteControlAuthority(request);
     const connection = await loginRouteNote(createWebRouteNoteControlDependencies());
     return NextResponse.json({ ok: true, connection });
